@@ -1,0 +1,6 @@
+**/.DS_Store
+credentials/credentials.json
+data/*
+model/*
+.cache
+.spotify_caches
