@@ -2,9 +2,12 @@
 
 # Introduction
 «Recommended Frequencies» is a recommendation engine for playlists and currently works for Spotify.
-Given a selected playlist in a user's library, the app suggests songs from the user's liked songs that may make a good addition to it.
+Given a selected playlist in a user's library, 
+the app suggests songs from the user's liked songs that may make a good addition to it.
+The current goal of this app is to provide recommendations solely using information from a user's library.
+Thus, methods like collaborative filtering are outside of the current scope.
 
-Song suggestions are based on similarities between audio features, song attributes and — optionally — genre.
+Specifically, under the current scope, song suggestions are based on similarities between audio features, song attributes and — optionally — genre.
 The audio features used by the app are a subset of those provided by [Spotify's API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features) 
 in addition to the year of the song's album release. All features used are listed [here](#audio_features).
 
