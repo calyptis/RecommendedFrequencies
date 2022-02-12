@@ -132,13 +132,16 @@ else:
 col2.markdown(f"#### Song attributes for playlist «{select_playlist}»")
 col2.plotly_chart(mood_board)
 
-# Collage of album covers
-# collage = plot_album_covers(list(playlist_features.AlbumCover.values[:10]))
-collage = plot_album_covers(playlist_album_covers[select_playlist])
-# Use st.image with image in buffer to allow transparent background, instead of st.pyplot(collage)
-buf = BytesIO()
-collage.savefig(buf, format="png", bbox_inches="tight", transparent=True, dpi=3*collage.dpi)
-st.image(buf, use_column_width=True)
+try:
+    # Collage of album covers
+    # collage = plot_album_covers(list(playlist_features.AlbumCover.values[:10]))
+    collage = plot_album_covers(playlist_album_covers[select_playlist])
+    # Use st.image with image in buffer to allow transparent background, instead of st.pyplot(collage)
+    buf = BytesIO()
+    collage.savefig(buf, format="png", bbox_inches="tight", transparent=True, dpi=3*collage.dpi)
+    st.image(buf, use_column_width=True)
+except KeyError:
+    pass
 
 # --------- Third row of page: similarity metric controls
 st.markdown("---")
@@ -147,7 +150,7 @@ controls = st.expander("Similarity Settings")
 select_suggestion_engine = controls.selectbox("Similarity Features", SUGGESTION_ENGINES.keys())
 suggestion_engine = SUGGESTION_ENGINES[select_suggestion_engine]
 if select_suggestion_engine == "Numeric Song Attributes + Genre":
-    genre_similarity = controls.selectbox("Genre Similarity Metric", GENRE_SIMILARITY, index=2)
+    genre_similarity = controls.selectbox("Genre Similarity Metric", GENRE_SIMILARITY, index=1)
     genre_weight = controls.slider("Genre Weight", min_value=0.0, max_value=1.0, value=0.3, step=0.1)
 else:
     # Default values
@@ -181,7 +184,7 @@ def get_top_results_wrapper(_song_similarity, _genre_weight, _top_n):
     """
     Wrap get_top_results into a function in order to use st.cache()
     """
-    return get_top_results(results=_song_similarity, genre_weight=genre_weight, n=top_n)
+    return get_top_results(results=_song_similarity, genre_weight=genre_weight, n=_top_n)
 
 
 songs_available_for_suggestion = list(all_songs_with_features - set(playlist_tracks))
@@ -218,7 +221,6 @@ else:
             suggested_songs_info
             .reset_index()
             [COL_ORDER]
-            .head(10)
             .drop("PreviewURL", axis=1)
         ),
         height=600
