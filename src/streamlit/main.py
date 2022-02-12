@@ -245,3 +245,6 @@ mood_board.update_layout(
 
 )
 col2.plotly_chart(mood_board)
+if not include_audio_preview:
+    col2.markdown("##### Listen to proposed song")
+    col2.audio(track_info.loc[select_song_suggested, "PreviewURL"])
