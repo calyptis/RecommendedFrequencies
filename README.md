@@ -7,6 +7,8 @@ the app suggests songs from the user's liked songs that may make a good addition
 The current goal of this app is to provide recommendations solely using information from a user's library.
 Thus, methods like collaborative filtering are outside of the current scope.
 
+A brief overview of the entire project can be found in these [presentation slides](resources/presentation/Presentation.pdf).
+
 Specifically, under the current scope, song suggestions are based on similarities between audio features, song attributes and — optionally — genre.
 The audio features used by the app are a subset of those provided by [Spotify's API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features) 
 in addition to the year of the song's album release. All features used are listed [here](#audio_features).
@@ -39,7 +41,7 @@ Details on the available similarity metrics can be found in [here](audio_feature
 
 # Installation guide
 
-## 1. Set-up Spotify developer account & register app
+## 1. Set up Spotify developer account & register app
 
 These steps have been validated with the website's version as of 2021-01-17.
 
