@@ -19,8 +19,8 @@ from src.modelling.config import (
 from src.project_config import DATA_DIR
 
 
-def get_baseline(playlist_features, songs_available_for_suggestion_features,
-                 genre_similarity=None):
+def get_baseline(playlist_features: pd.DataFrame, songs_available_for_suggestion_features: pd.DataFrame,
+                 genre_similarity: str = None) -> pd.DataFrame:
     """
     Calculate weighted Euclidean distance and genre distance between songs in the library but not in the playlist
     and those in the playlist.
@@ -173,7 +173,7 @@ def get_baseline(playlist_features, songs_available_for_suggestion_features,
     return df_similarity
 
 
-def get_top_results(results, genre_weight=0, n=10):
+def get_top_results(results: pd.DataFrame, genre_weight: int = 0, n: int = 10) -> pd.DataFrame:
     """
     Limit the results to a selected number of most similar songs.
 

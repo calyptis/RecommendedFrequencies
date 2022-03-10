@@ -1,10 +1,13 @@
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from src.plotting.config import RADIAL_COLS_PRETTY, RADIAL_COLS
 
 
-def plot_radial_plot(song_features, title, inline=False, only_return_trace=False):
+def plot_radial_plot(
+        song_features: pd.DataFrame, title: str, inline: bool = False, only_return_trace: bool = False
+) -> go.Figure:
     """
     Plot radial plot of a specified song.
 
@@ -60,7 +63,9 @@ def plot_radial_plot(song_features, title, inline=False, only_return_trace=False
         return fig
 
 
-def plot_mood_board(playlist_features, title, inline=False, metrics_version=1):
+def plot_mood_board(
+        playlist_features: pd.DataFrame, title: str, inline: bool = False, metrics_version: int = 1
+) -> go.Figure:
     """
     Plot a radial plot that summarises the characteristics of a playlist.
 

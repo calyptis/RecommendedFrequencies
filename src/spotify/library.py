@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 
 
-def get_spotipy_instance():
+def get_spotipy_instance() -> spotipy.client.Spotify:
     """
     Get a spotipy instance used to make Spotify queries.
 
@@ -46,7 +46,7 @@ def get_spotipy_instance():
     return sp_instance
 
 
-def get_tracks(sp, verbose=0):
+def get_tracks(sp: spotipy.client.Spotify, verbose: int=0):
     """
     Get all songs in a user's library.
 
@@ -84,7 +84,7 @@ def get_tracks(sp, verbose=0):
     pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
 
 
-def parse_tracks():
+def parse_tracks() -> None:
     """
     Parse track information, i.e. select on the most relevant track attributes.
 
@@ -101,7 +101,7 @@ def parse_tracks():
     library.to_csv(TRACK_PARSED_FILE, index=False)
 
 
-def get_missing_preview_urls(sp, verbose=0):
+def get_missing_preview_urls(sp: spotipy.client.Spotify, verbose: int = 0):
     """
     When getting all tracks in a user's library, sometimes some preview URLs are missing.
     One solution to this is to search for the song again.
@@ -170,7 +170,7 @@ def get_missing_preview_urls(sp, verbose=0):
     df_results.to_csv(PREVIEW_FILE, index=False, mode="a", header=False)
 
 
-def get_genres(sp, verbose=0):
+def get_genres(sp: spotipy.client.Spotify, verbose: int = 0):
     """
     Obtain genres of artists in a user's library.
 
@@ -215,7 +215,7 @@ def get_genres(sp, verbose=0):
     artist_genres.to_csv(GENRE_FILE, index=False, mode="a", header=False)
 
 
-def get_track_features(sp, library=None, verbose=0):
+def get_track_features(sp: spotipy.client.Spotify, library: str = None, verbose: int = 0) -> None:
     """
     Obtain high-level audio features for tracks in a user's library.
     For information on the available features, see:
@@ -269,7 +269,9 @@ def get_track_features(sp, library=None, verbose=0):
     features_df.to_csv(TRACK_FEAT_FILE, mode='a', header=False, index=False)
 
 
-def get_playlists(sp, user_id=None, out_file=PLAYLIST_FILE, verbose=0):
+def get_playlists(
+        sp: spotipy.client.Spotify, user_id: str = None, out_file: str = PLAYLIST_FILE, verbose: int = 0
+) -> None:
     """
     Obtain all playlists that a user has in their library.
 
@@ -316,7 +318,7 @@ def get_playlists(sp, user_id=None, out_file=PLAYLIST_FILE, verbose=0):
     pickle.dump(playlists, open(out_file, "ab+"))
 
 
-def parse_playlist_genres(verbose: int = 0):
+def parse_playlist_genres(verbose: int = 0) -> None:
     """
     Combine all the genres associated to artists in a playlist.
 
@@ -342,7 +344,7 @@ def parse_playlist_genres(verbose: int = 0):
     json.dump(updated_playlist, open(PLAYLIST_GENRE_FILE, "w"))
 
 
-def get_album_covers_for_playlists(verbose=0):
+def get_album_covers_for_playlists(verbose: int = 0) -> None:
     playlists = pickle.load(open(PLAYLIST_FILE, "rb"))
     data = pickle.load(open(MAIN_DATA_FILE, "rb"))
     items = []
@@ -370,7 +372,7 @@ def get_album_covers_for_playlists(verbose=0):
     pickle.dump(items, open(ALBUM_COVER_FILE, "ab+"))
 
 
-def _get_playlist_tracks(sp, playlist_id):
+def _get_playlist_tracks(sp: spotipy.client.Spotify, playlist_id: str) -> list:
     """
     Obtain all track IDs of the songs included in a specified playlist.
 
@@ -407,7 +409,7 @@ def _get_playlist_tracks(sp, playlist_id):
     return playlist_tracks
 
 
-def _parse_track_info(track_info):
+def _parse_track_info(track_info: dict) -> dict:
     """
     Parses object returned from Spotify's API query.
 

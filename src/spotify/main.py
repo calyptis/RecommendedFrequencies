@@ -6,7 +6,7 @@ from src.spotify.library import (
     get_album_covers_for_playlists
 )
 from src.spotify.config import (
-    TRACK_RAW_FILE, TRACK_PARSED_FILE,
+    TRACK_RAW_FILE,
     PLAYLIST_FILE, MAIN_DATA_FILE,
     PLAYLIST_GENRE_FILE,
     GENRE_WORD2VEC_EMBEDDING_FILE,
@@ -18,9 +18,12 @@ from src.spotify.genre_embeddings import (
     get_word2vec_embeddings, download_everynoise_genre_space,
     get_everynoise_embeddings, get_genre_co_occurrence_model
 )
-from src.spotify.data import merge_data
+from src.spotify.merge_data import merge_data
 import os
 import logging
+import spotipy
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -33,7 +36,7 @@ logging.basicConfig(
 MSG = "\n{}\n========"
 
 
-def pipeline(sp):
+def pipeline(sp: spotipy.client.Spotify) -> None:
     """
     Wrapper of pipeline to obtain all the data consumed by the streamlit dashboard.
 

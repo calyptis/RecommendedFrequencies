@@ -1,8 +1,9 @@
 import pandas as pd
 import itertools
+from typing import Tuple
 
 
-def set_similarity(a: set, b: set):
+def set_similarity(a: set, b: set) -> float:
     """
     Set similarity, which equals |A u B| / |A v B|
 
@@ -18,7 +19,7 @@ def set_similarity(a: set, b: set):
     return len(a.intersection(b)) / len(a.union(b))
 
 
-def weighted_set_similarity(a: set, b: set, df_genre_occurrence: pd.DataFrame):
+def weighted_set_similarity(a: set, b: set, df_genre_occurrence: pd.DataFrame) -> int:
     """
     TODO: Re-think approach
     Weighted similarity between two sets, where weight is the occurrence of the respective genre.
@@ -39,7 +40,9 @@ def weighted_set_similarity(a: set, b: set, df_genre_occurrence: pd.DataFrame):
     return df_genre_occurrence.loc[genre_intersection].sum() / df_genre_occurrence.loc[genre_union].sum()
 
 
-def co_occurrence_similarity(co_occurrence_lookup_table: pd.DataFrame, playlist_genres: list, tuple_b: tuple):
+def co_occurrence_similarity(
+        co_occurrence_lookup_table: pd.DataFrame, playlist_genres: list, tuple_b: tuple
+) -> Tuple[str, float]:
     """
     Measures co-occurrence similarity of genres between songs in a selected playlist and given song.
 

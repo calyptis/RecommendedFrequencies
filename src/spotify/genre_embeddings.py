@@ -1,3 +1,4 @@
+from typing import Tuple
 import fasttext
 import pandas as pd
 import numpy as np
@@ -21,7 +22,7 @@ from src.spotify.utils import (
 )
 
 
-def get_word2vec_embeddings():
+def get_word2vec_embeddings() -> None:
     """
     Obtain word2vec embeddings for genres of artists.
 
@@ -42,7 +43,7 @@ def get_word2vec_embeddings():
     genres_df.to_json(GENRE_WORD2VEC_EMBEDDING_FILE)
 
 
-def download_everynoise_genre_space():
+def download_everynoise_genre_space() -> None:
     """
     Parse genre positions in the embedded genre space as reported on
         https://everynoise.com/
@@ -63,7 +64,7 @@ def download_everynoise_genre_space():
     df_genres_positions.to_csv(EVERYNOISE_GENRE_SPACE, index=False)
 
 
-def get_everynoise_embeddings():
+def get_everynoise_embeddings() -> None:
     genres_df = pd.read_csv(GENRE_FILE)
     genre_space_df = pd.read_csv(EVERYNOISE_GENRE_SPACE).set_index("genre")
     genres_df["GenreList"] = genres_df["GenreList"].apply(eval)
@@ -74,7 +75,7 @@ def get_everynoise_embeddings():
     genres_df.to_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
 
 
-def get_genre_co_occurrence_model(debug=True):
+def get_genre_co_occurrence_model(debug: bool = True) -> None:
     """
     Calculate genre co-occurrences:
         - For each playlist
@@ -116,13 +117,13 @@ def get_genre_co_occurrence_model(debug=True):
         pickle.dump(playlist_counters, open(CO_OCCURRENCE_FILE, "wb"))
 
 
-def _get_position(item):
+def _get_position(item: BeautifulSoup.element.Tag) -> Tuple[str, int, int]:
     """
     Parse a genre HTML tag on everynoise.com
 
     Parameters
     ----------
-    item : bs4.element.Tag
+    item : BeautifulSoup.element.Tag
 
     Returns
     -------

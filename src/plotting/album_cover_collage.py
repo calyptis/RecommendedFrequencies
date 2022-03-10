@@ -2,7 +2,7 @@ import matplotlib.pylab as plt
 import math
 
 
-def plot_album_covers(album_cover_list: list, kind: str = "row"):
+def plot_album_covers(album_cover_list: list, kind: str = "row") -> plt.Figure:
     """
     Plots a collection of selected album covers, either as a square (kind == 'square') or row (kind == 'row').
 

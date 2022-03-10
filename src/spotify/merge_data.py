@@ -12,9 +12,9 @@ from src.spotify.config import (
 )
 
 
-def merge_data():
+def merge_data() -> None:
     """
-    Merge all data sources into a single file that can be used to calculate song similarities.
+    Merges all data sources into a single file that can be used to calculate song similarities.
 
     Parameters
     ----------
