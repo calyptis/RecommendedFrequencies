@@ -7,7 +7,7 @@ from src.plotting.mood_board import plot_mood_board, plot_radial_plot
 from src.plotting.album_cover_collage import plot_album_covers
 from src.modelling.baseline import get_baseline, get_top_results
 from src.streamlit.utils import make_clickable_html
-from src.spotify.config import PLAYLIST_FILE, ALBUM_COVER_FILE
+from src.spotify.config import PLAYLIST_FILE, ALBUM_COVER_FILE, MAIN_DATA_FILE
 from src.spotify.utils import read_pickle
 
 
@@ -53,9 +53,8 @@ else:
 app_title = 'Recommended Frequencies'
 st.set_page_config(page_title=app_title, page_icon="🎵", layout="wide")
 
+
 # --------- Data
-
-
 @st.cache
 def get_playlists():
     list_playlists = read_pickle(PLAYLIST_FILE)
@@ -65,7 +64,7 @@ def get_playlists():
 
 @st.cache
 def get_data():
-    data = pd.read_pickle(os.path.join(DATA_DIR, "data.pickle"))
+    data = pd.read_pickle(MAIN_DATA_FILE)
     data.index.name = "ID"
     data.Artist = data.Artist.apply(lambda x: x.split(" | ")[0])
     return data
@@ -89,7 +88,7 @@ else:
     playlist_options = sorted(set(playlists.keys()) - set(exclude_playlists))
 
 # --------- First row of page
-st.title("Recommended Frequencies: a recommendation system for playlists")
+st.title("Recommended Frequencies: A Recommendation System For Playlists")
 st.markdown("**This app allows users to identify songs in their library that may fit well into a selected playlist**")
 controls = st.expander("Page Settings")
 include_audio_preview = controls.checkbox("Include Audio Preview", value=False)
@@ -129,6 +128,8 @@ else:
         ),
         height=600
     )
+# To copy list of songs into the presentation
+playlist_info.reset_index()[COL_ORDER].head(10).to_csv(os.path.join(DATA_DIR, "TMP_PLAYLIST_SONGS.csv"))
 col2.markdown(f"#### Song attributes for playlist «{select_playlist}»")
 col2.plotly_chart(mood_board)
 
@@ -188,6 +189,7 @@ def get_top_results_wrapper(_song_similarity, _genre_weight, _top_n):
 
 
 songs_available_for_suggestion = list(all_songs_with_features - set(playlist_tracks))
+print("Number of songs available for suggestion: ", len(songs_available_for_suggestion))
 songs_available_for_suggestion_features = features.loc[songs_available_for_suggestion].copy()
 song_similarity = get_results_wrapper(
     _suggestion_engine=suggestion_engine,
@@ -220,7 +222,7 @@ else:
         (
             suggested_songs_info
             .reset_index()
-            [COL_ORDER]
+            [COL_ORDER + ["Distance"]]
             .drop("PreviewURL", axis=1)
         ),
         height=600
@@ -228,6 +230,8 @@ else:
 col2.markdown(
     "#### Visualise similarity of proposed song"
 )
+# To copy list of songs into the presentation
+suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))
 select_song_suggested = col2.text_input(
     "Spotify song ID to visualise",
     suggested_songs.index[0]

@@ -8,14 +8,16 @@ from bs4 import BeautifulSoup
 from collections import Counter
 from functools import reduce
 import itertools
+import pickle
 from src.spotify.config import (
     GENRE_FILE, GENRE_WORD2VEC_EMBEDDING_FILE,
     GENRE_EVERYNOISE_EMBEDDING_FILE, EVERYNOISE_GENRE_SPACE,
-    MAIN_DATA_FILE, PLAYLIST_FILE, CO_OCCURRENCE_TABLE
+    MAIN_DATA_FILE, PLAYLIST_FILE, CO_OCCURRENCE_TABLE,
+    CO_OCCURRENCE_FILE
 )
-from src.project_config import MODEL_DIR
+from src.project_config import MODEL_DIR, DATA_DIR
 from src.spotify.utils import (
-    concat_lists, get_frequent_genres, read_pickle
+    concat_lists, read_pickle
 )
 
 
@@ -72,7 +74,7 @@ def get_everynoise_embeddings():
     genres_df.to_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
 
 
-def get_genre_co_occurrence_model():
+def get_genre_co_occurrence_model(debug=True):
     """
     Calculate genre co-occurrences:
         - For each playlist
@@ -90,18 +92,28 @@ def get_genre_co_occurrence_model():
     """
     data = pd.read_pickle(MAIN_DATA_FILE)
     playlists = read_pickle(PLAYLIST_FILE)
-    playlists = {playlist["name"][0]: playlist for playlist in playlists}
-    frq_genres = get_frequent_genres(MAIN_DATA_FILE)
-    list_counters = []
+    exclude_playlist_path = os.path.join(DATA_DIR, "exclude_playlists.txt")
+    if os.path.exists(exclude_playlist_path):
+        with open(exclude_playlist_path, "r") as f:
+            exclude_playlists = f.read().split("\n")
+    else:
+        exclude_playlists = []
+    playlists = {
+        playlist["name"][0]: playlist
+        for playlist in playlists
+        if playlist["name"][0] not in exclude_playlists
+    }
+    playlist_counters = {}
     for k, v in playlists.items():
-        genres = data.loc[data.index.intersection(v["tracks"])].GenreList
+        genres = data.loc[data.index.intersection(v["tracks"])].GenreSet.apply(list).values
         genres = concat_lists(genres)
-        genres = [i for i in genres if i in frq_genres]
         pairs = [tuple(sorted(i)) for i in itertools.combinations(genres, 2)]
-        list_counters.append(Counter(pairs))
-    counter = dict(reduce(lambda a, b: a + b, list_counters))
+        playlist_counters[k] = Counter(pairs)
+    counter = dict(reduce(lambda a, b: a + b, playlist_counters.values()))
     co_occurrence_model = pd.DataFrame(counter, index=[0]).T
     co_occurrence_model.to_csv(CO_OCCURRENCE_TABLE)
+    if debug:
+        pickle.dump(playlist_counters, open(CO_OCCURRENCE_FILE, "wb"))
 
 
 def _get_position(item):

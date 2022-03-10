@@ -59,9 +59,9 @@ def get_tracks(sp, verbose=0):
     -------
 
     """
-    limit = 20
+    limit = 50  # Seems to be the maximum accepted
     offset = 0
-    update_interval = 60
+    update_interval = 50
     results = []
     while True:
         # Saved tracks == liked songs
@@ -78,10 +78,10 @@ def get_tracks(sp, verbose=0):
         if offset % update_interval == 0:
             if verbose >= 1:
                 logging.info(f"Downloaded {offset} tracks")
-            pickle.dump(results, open(TRACK_PARSED_FILE, "ab+"))
+            pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
             time.sleep(0.2)  # Make sure not too many API calls are made in a short amount of time
             results = []
-    pickle.dump(results, open(TRACK_PARSED_FILE, "ab+"))
+    pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
 
 
 def parse_tracks():
@@ -121,6 +121,10 @@ def get_missing_preview_urls(sp, verbose=0):
     mask = library.PreviewURL.isnull()
     # Get relevant information on songs with missing preview URL
     df = library.loc[mask, ["ID", "SongName", "Artist"]]
+    # Read in preview urls already obtained
+    if os.path.exists(PREVIEW_FILE):
+        already_downloaded = pd.read_csv(PREVIEW_FILE)
+        df = df.loc[~df.ID.isin(already_downloaded.ID.unique())].copy()
     results = []
     count = 0
     update_interval = 50
@@ -129,6 +133,8 @@ def get_missing_preview_urls(sp, verbose=0):
         query = " ".join([row.SongName, row.Artist.replace(" | ", " ")])
         track = timeout_wrapper(sp.search(query, limit=10, offset=0, type='track', market=None))
         if not track:
+            # Keep track of songs for which no preview is available
+            results.append((row.ID, np.NaN))
             continue
         items = track["tracks"]["items"]
         # Filter out matches without preview url and calculate string similarity
@@ -149,6 +155,9 @@ def get_missing_preview_urls(sp, verbose=0):
             matched_items.sort(key=lambda x: x[1], reverse=True)
             best_match_preview_url = matched_items[0][0]
             results.append((row.ID, best_match_preview_url))
+        else:
+            # Keep track of songs for which no preview is available
+            results.append((row.ID, np.NaN))
         if count % update_interval == 0:
             if verbose >= 1:
                 logging.info(f"Downloaded previews for {count} tracks")
@@ -177,6 +186,9 @@ def get_genres(sp, verbose=0):
     library = pd.read_csv(TRACK_PARSED_FILE)
     # Flatten the list of lists of artists in a user's library
     artist_ids = list(set(np.concatenate(library.ArtistID.str.split("|").values)))
+    if os.path.exists(GENRE_FILE):
+        existing_artist_genres = pd.read_csv(GENRE_FILE)
+        artist_ids = list(set(artist_ids) - set(existing_artist_genres.ArtistID))
     results = []
     count = 0
     update_interval = 50
@@ -336,6 +348,10 @@ def get_album_covers_for_playlists(verbose=0):
     items = []
     count = 0
     update_interval = 3
+    if os.path.exists(ALBUM_COVER_FILE):
+        existing_playlist_album_covers = read_pickle(ALBUM_COVER_FILE)
+        existing_ids = [i[1] for i in existing_playlist_album_covers]
+        playlists = [i for i in playlists if i["id"] not in existing_ids]
     for playlist_info in playlists:
         count += 1
         playlist_id = playlist_info["id"]

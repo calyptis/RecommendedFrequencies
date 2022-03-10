@@ -78,6 +78,9 @@ def merge_data():
     tmp["missing_everynoise_genre"] = tmp.GenreEveryNoiseEmbedding.apply(lambda x: pd.isnull(x).sum() > 0)
     data = features_df.join(tmp, how="inner")
 
+    # In case of collaborations, only care about the fact that the single occurrence of a given genre
+    data["GenreSet"] = data.GenreList.apply(set)
+
     # Normalize features that are not yet normalized
     cols_to_scale = ["tempo", "loudness", "AlbumReleaseYear"]
     for c in cols_to_scale:

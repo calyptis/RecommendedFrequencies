@@ -13,5 +13,6 @@ GENRE_WORD2VEC_EMBEDDING_FILE = os.path.join(DATA_DIR, "genre_embeddings_word2ve
 # Use pickle: Json converts NaN to None
 GENRE_EVERYNOISE_EMBEDDING_FILE = os.path.join(DATA_DIR, "genre_embeddings_everynoise.pickle")
 EVERYNOISE_GENRE_SPACE = os.path.join(DATA_DIR, "genre_space_everynoise.csv")
-CO_OCCURRENCE_TABLE = os.path.join(DATA_DIR, "song_genre_co_occurrence_lookup_table.csv")
+CO_OCCURRENCE_TABLE = os.path.join(DATA_DIR, "genre_co_occurrence_lookup_table.csv")
+CO_OCCURRENCE_FILE = os.path.join(DATA_DIR, "genre_co_occurrence_values_by_playlist.pickle")
 ALBUM_COVER_FILE = os.path.join(DATA_DIR, "playlist_album_covers.pickle")

@@ -7,12 +7,10 @@ from src.spotify.library import (
 )
 from src.spotify.config import (
     TRACK_RAW_FILE, TRACK_PARSED_FILE,
-    GENRE_FILE, TRACK_FEAT_FILE,
-    PREVIEW_FILE, PLAYLIST_FILE,
-    MAIN_DATA_FILE, PLAYLIST_GENRE_FILE,
+    PLAYLIST_FILE, MAIN_DATA_FILE,
+    PLAYLIST_GENRE_FILE,
     GENRE_WORD2VEC_EMBEDDING_FILE,
     GENRE_EVERYNOISE_EMBEDDING_FILE,
-    ALBUM_COVER_FILE,
     EVERYNOISE_GENRE_SPACE,
     CO_OCCURRENCE_TABLE
 )
@@ -50,23 +48,20 @@ def pipeline(sp):
     if not os.path.exists(TRACK_RAW_FILE):
         logging.info(msg=MSG.format("Download tracks"))
         get_tracks(sp, verbose=1)
-    if not os.path.exists(TRACK_PARSED_FILE):
-        logging.info(msg=MSG.format("Parsing tracks"))
-        parse_tracks()
-    if not os.path.exists(GENRE_FILE):
-        logging.info(msg=MSG.format("Download genres"))
-        get_genres(sp, verbose=1)
-    if not os.path.exists(TRACK_FEAT_FILE):
-        logging.info(msg=MSG.format("Download audio features"))
-        get_track_features(sp, verbose=1)
-    if not os.path.exists(PREVIEW_FILE):
-        logging.info(msg=MSG.format("Download missing previews"))
-        get_missing_preview_urls(sp, verbose=1)
+    logging.info(msg=MSG.format("Parsing tracks"))
+    parse_tracks()
+    # Works incrementally
+    logging.info(msg=MSG.format("Download genres"))
+    get_genres(sp, verbose=1)
+    # Works incrementally
+    logging.info(msg=MSG.format("Download audio features"))
+    get_track_features(sp, verbose=1)
+    # Works incrementally
+    logging.info(msg=MSG.format("Download missing previews"))
+    get_missing_preview_urls(sp, verbose=1)
     if not os.path.exists(PLAYLIST_FILE):
         logging.info(msg=MSG.format("Download playlists"))
         get_playlists(sp, verbose=1)
-    if not os.path.exists(ALBUM_COVER_FILE):
-        get_album_covers_for_playlists(verbose=1)
     if not os.path.exists(EVERYNOISE_GENRE_SPACE):
         logging.info(msg=MSG.format("Download Every Noise At Once Genre Space"))
         download_everynoise_genre_space()
@@ -76,15 +71,19 @@ def pipeline(sp):
     if not os.path.exists(GENRE_WORD2VEC_EMBEDDING_FILE):
         logging.info(msg=MSG.format("Obtain word2vec genre embeddings"))
         get_word2vec_embeddings()
-    if not os.path.exists(CO_OCCURRENCE_TABLE):
-        logging.info(msg=MSG.format("Get co-occurrence lookup table"))
-        get_genre_co_occurrence_model()
     if not os.path.exists(MAIN_DATA_FILE):
         logging.info(msg=MSG.format("Merge data"))
         merge_data()
     if not os.path.exists(PLAYLIST_GENRE_FILE):
         logging.info(msg=MSG.format("Obtain genre playlist profiles"))
         parse_playlist_genres(verbose=1)
+    # Works incrementally => if songs were removed from a playlist
+    # File needs to be overwritten
+    logging.info(msg=MSG.format("Getting album cover samples"))
+    get_album_covers_for_playlists(verbose=1)
+    if not os.path.exists(CO_OCCURRENCE_TABLE):
+        logging.info(msg=MSG.format("Get co-occurrence lookup table"))
+        get_genre_co_occurrence_model()
 
 
 if __name__ == '__main__':
