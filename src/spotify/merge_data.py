@@ -12,18 +12,10 @@ from src.spotify.config import (
 )
 
 
-def merge_data() -> None:
+def merge_data():
     """
     Merges all data sources into a single file that can be used to calculate song similarities.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
     """
-    # TODO: Figure out how to aggregate everynoise embeddings
     genres_word2vec_df = pd.read_json(GENRE_WORD2VEC_EMBEDDING_FILE)
     genres_everynoise_df = pd.read_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
 
@@ -39,7 +31,7 @@ def merge_data() -> None:
         axis=1, inplace=True
     )
 
-    # Merge track data-frame to get year or release
+    # Merge track data-frame to get year of release
     features_df = features_df.join(
         tracks_df[["AlbumReleaseYear", "ArtistID", "SongName", "Artist", "PreviewURL", "AlbumCover"]],
         how="inner"

@@ -243,3 +243,5 @@ Genre similarity is then simply the euclidean distance between the two locations
   - ML model: https://dl.acm.org/doi/10.1145/3383313.3412248
 - Articles on Spotify's music recommendation
   - https://www.popsci.com/technology/spotify-audio-recommendation-research/
+- Pre-trained ML models:
+  - https://essentia.upf.edu/machine_learning.html

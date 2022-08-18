@@ -9,6 +9,7 @@ from src.modelling.baseline import get_baseline, get_top_results
 from src.streamlit.utils import make_clickable_html
 from src.spotify.config import PLAYLIST_FILE, ALBUM_COVER_FILE, MAIN_DATA_FILE
 from src.spotify.utils import read_pickle
+from src.modelling.config import EUCLIDEAN_FEAT_COLS
 
 
 COL_ORDER = [
@@ -62,7 +63,7 @@ def get_playlists():
     return dict_playlists
 
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def get_data():
     data = pd.read_pickle(MAIN_DATA_FILE)
     data.index.name = "ID"
@@ -80,6 +81,7 @@ playlists = get_playlists()
 features = get_data()
 playlist_album_covers = get_album_covers()
 track_info = features[[i for i in COL_ORDER if i != "ID"]].copy()
+track_info["SongNameArtist"] = track_info.SongName + " - " + track_info.Artist
 all_songs_with_features = set(features.index)
 
 if show_playlists:
@@ -100,7 +102,7 @@ select_playlist = st.selectbox("", playlist_options)
 playlist_tracks = sorted(list(set(playlists[select_playlist]["tracks"]).intersection(set(all_songs_with_features))))
 playlist_features = features.loc[playlist_tracks].copy()
 playlist_info = track_info.loc[playlist_tracks]
-mood_board = plot_mood_board(playlist_features, title="", inline=False, metrics_version=1)
+mood_board = plot_mood_board(playlist_features[EUCLIDEAN_FEAT_COLS], title="", inline=False, metrics_version=1)
 
 # --------- Second row of page: playlist info
 col1, col2 = st.columns(2)
@@ -126,7 +128,7 @@ else:
             .head(10)
             .drop("PreviewURL", axis=1)
         ),
-        height=600
+        # height=600
     )
 # To copy list of songs into the presentation
 playlist_info.reset_index()[COL_ORDER].head(10).to_csv(os.path.join(DATA_DIR, "TMP_PLAYLIST_SONGS.csv"))
@@ -199,6 +201,7 @@ song_similarity = get_results_wrapper(
 )
 suggested_songs = get_top_results_wrapper(_song_similarity=song_similarity, _genre_weight=genre_weight, _top_n=top_n)
 suggested_songs_info = track_info.join(suggested_songs, how="inner").sort_values(by="Distance")
+suggested_songs_info["SongNameArtist"] = suggested_songs_info.SongName + " - " + suggested_songs_info.Artist
 for c in ["EuclideanDistance", "GenreDistance", "Distance"]:
     suggested_songs_info[c] = suggested_songs_info[c].map(lambda x: '{0:.2f}'.format(x))
 
@@ -225,18 +228,39 @@ else:
             [COL_ORDER + ["Distance"]]
             .drop("PreviewURL", axis=1)
         ),
-        height=600
+        # height=600
     )
 col2.markdown(
     "#### Visualise similarity of proposed song"
 )
 # To copy list of songs into the presentation
-suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))
-select_song_suggested = col2.text_input(
-    "Spotify song ID to visualise",
-    suggested_songs.index[0]
+# suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))
+select_song_type = col2.radio(
+    "Song to visualise",
+    options=["ID", "Name"]
 )
-selected_song_name, selected_song_artist = track_info.loc[select_song_suggested, ["SongName", "Artist"]].values
+if select_song_type == "ID":
+    select_song_suggested = col2.text_input(
+        "Spotify song ID to visualise",
+        suggested_songs.index[0]
+    )
+    selected_song_name, selected_song_artist = track_info.loc[select_song_suggested, ["SongName", "Artist"]].values
+else:
+    select_song_suggested_name = col2.selectbox(
+        "Spotify song name to visualise",
+        track_info.SongNameArtist.unique()
+    )
+    tmp = (
+        track_info
+        .loc[
+            lambda x: x.SongNameArtist == select_song_suggested_name,
+            ["SongName", "Artist"]
+        ]
+        .iloc[:1]
+    )
+    selected_song_name, selected_song_artist = tmp.values[0]
+    select_song_suggested = tmp.index[0]
+
 song_radial_plot_trace = plot_radial_plot(
     features.loc[select_song_suggested].copy(),
     title=f"{selected_song_name} by {selected_song_artist}",

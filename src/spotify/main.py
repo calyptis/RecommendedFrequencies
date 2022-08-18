@@ -36,7 +36,7 @@ logging.basicConfig(
 MSG = "\n{}\n========"
 
 
-def pipeline(sp: spotipy.client.Spotify) -> None:
+def pipeline(sp: spotipy.client.Spotify):
     """
     Wrapper of pipeline to obtain all the data consumed by the streamlit dashboard.
 

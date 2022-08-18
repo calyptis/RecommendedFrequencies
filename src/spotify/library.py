@@ -215,7 +215,7 @@ def get_genres(sp: spotipy.client.Spotify, verbose: int = 0):
     artist_genres.to_csv(GENRE_FILE, index=False, mode="a", header=False)
 
 
-def get_track_features(sp: spotipy.client.Spotify, library: str = None, verbose: int = 0) -> None:
+def get_track_features(sp: spotipy.client.Spotify, library: str = None, verbose: int = 0):
     """
     Obtain high-level audio features for tracks in a user's library.
     For information on the available features, see:
@@ -271,7 +271,7 @@ def get_track_features(sp: spotipy.client.Spotify, library: str = None, verbose:
 
 def get_playlists(
         sp: spotipy.client.Spotify, user_id: str = None, out_file: str = PLAYLIST_FILE, verbose: int = 0
-) -> None:
+):
     """
     Obtain all playlists that a user has in their library.
 
@@ -318,7 +318,7 @@ def get_playlists(
     pickle.dump(playlists, open(out_file, "ab+"))
 
 
-def parse_playlist_genres(verbose: int = 0) -> None:
+def parse_playlist_genres(verbose: int = 0):
     """
     Combine all the genres associated to artists in a playlist.
 
@@ -337,14 +337,25 @@ def parse_playlist_genres(verbose: int = 0) -> None:
         if verbose >= 1:
             logging.info(f"Parsing genres for {playlist_name}")
         # Identify tracks that are both in the library and playlist
-        # Because not saved songs can still be part of playlists
+        # Because non-saved songs can still be part of playlists
         common_tracks = list(set(playlist_info["tracks"]).intersection(set(data.index)))
         playlist_info["genres"] = list(set(np.concatenate(data.loc[common_tracks].GenreList.values)))
         updated_playlist[playlist_name] = playlist_info
     json.dump(updated_playlist, open(PLAYLIST_GENRE_FILE, "w"))
 
 
-def get_album_covers_for_playlists(verbose: int = 0) -> None:
+def get_album_covers_for_playlists(verbose: int = 0):
+    """
+
+    Parameters
+    ----------
+    verbose: Level of verbosity of the progress tracker. Verbose >= will print which playlist the function
+    is currently working on.
+
+    Returns
+    -------
+
+    """
     playlists = pickle.load(open(PLAYLIST_FILE, "rb"))
     data = pickle.load(open(MAIN_DATA_FILE, "rb"))
     items = []

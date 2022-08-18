@@ -24,14 +24,7 @@ from src.spotify.utils import (
 
 def get_word2vec_embeddings() -> None:
     """
-    Obtain word2vec embeddings for genres of artists.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-    Saves genre word vectors to disk.
+    Obtain word2vec embeddings for genres of artists and saves them to disk.
     """
     genres_df = pd.read_csv(GENRE_FILE)
     genres_df["GenreList"] = genres_df["GenreList"].apply(eval)
@@ -47,13 +40,6 @@ def download_everynoise_genre_space() -> None:
     """
     Parse genre positions in the embedded genre space as reported on
         https://everynoise.com/
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
     """
     url_body = request.urlopen("https://everynoise.com/").read()
     soup = BeautifulSoup(url_body, 'html.parser')
@@ -65,6 +51,9 @@ def download_everynoise_genre_space() -> None:
 
 
 def get_everynoise_embeddings() -> None:
+    """
+    Given a list of genres for an artist, calculate the centroid across all their (x, y) coordinates.
+    """
     genres_df = pd.read_csv(GENRE_FILE)
     genre_space_df = pd.read_csv(EVERYNOISE_GENRE_SPACE).set_index("genre")
     genres_df["GenreList"] = genres_df["GenreList"].apply(eval)
@@ -83,13 +72,6 @@ def get_genre_co_occurrence_model(debug: bool = True) -> None:
             - Get all combinations of any pair of 2 genres in the playlist
                 - Calculate how often each pair occurs
         - Do this for each playlist and sum occurrences together
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-    Saves co-occurrence model as pd.DataFrame to disk.
     """
     data = pd.read_pickle(MAIN_DATA_FILE)
     playlists = read_pickle(PLAYLIST_FILE)
@@ -124,10 +106,6 @@ def _get_position(item: BeautifulSoup.element.Tag) -> Tuple[str, int, int]:
     Parameters
     ----------
     item : BeautifulSoup.element.Tag
-
-    Returns
-    -------
-
     """
     genre_name = item.get("onclick").split(",")[1].strip().replace('"', "")
     y = int(re.search("top: (\d+)px", item.get("style")).group(1))
