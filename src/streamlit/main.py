@@ -31,6 +31,7 @@ GENRE_SIMILARITY = [
     "set-similarity",
     # "weighted set-similarity"
 ]
+SIMILAR_SONGS_STEPS = 10
 
 # If certain playlists should be excluded from the dashboard
 # they need to be listed in the file below
@@ -106,7 +107,7 @@ mood_board = plot_mood_board(playlist_features[EUCLIDEAN_FEAT_COLS], title="", i
 
 # --------- Second row of page: playlist info
 col1, col2 = st.columns(2)
-col1.markdown(f"#### Examples of songs in playlist «{select_playlist}»")
+col1.markdown(f"#### Some songs in playlist «{select_playlist}»")
 if include_audio_preview:
     col1.write(
         (
@@ -159,7 +160,13 @@ else:
     # Default values
     genre_weight = 0
     genre_similarity = None
-top_n = controls.slider("Nr of Suggestions", min_value=5, max_value=20, value=10, step=1)
+top_n = controls.slider(
+    "Nr of Suggestions",
+    min_value=SIMILAR_SONGS_STEPS,
+    max_value=SIMILAR_SONGS_STEPS*10,
+    value=SIMILAR_SONGS_STEPS,
+    step=SIMILAR_SONGS_STEPS
+)
 
 # --------- Find most similar songs
 
@@ -208,11 +215,20 @@ for c in ["EuclideanDistance", "GenreDistance", "Distance"]:
 # --------- Fourth row of page: display results
 col1, col2 = st.columns(2)
 col1.markdown(f"#### Most similar songs to playlist «{select_playlist}»")
+
+if top_n > 10:
+    result_page = col1.selectbox("Result Page # ", range(1, top_n // 10))
+else:
+    result_page = 1
+start = (result_page-1)*SIMILAR_SONGS_STEPS
+end = result_page*SIMILAR_SONGS_STEPS
+
 if include_audio_preview:
     col1.write(
         (
             suggested_songs_info
             .reset_index()
+            .iloc[start:end]
             [COL_ORDER + ["Distance"]]
             .style.format({'PreviewURL': make_clickable_html})
             .to_html()
@@ -225,6 +241,7 @@ else:
         (
             suggested_songs_info
             .reset_index()
+            .iloc[start:end]
             [COL_ORDER + ["Distance"]]
             .drop("PreviewURL", axis=1)
         ),
@@ -236,18 +253,18 @@ col2.markdown(
 # To copy list of songs into the presentation
 # suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))
 select_song_type = col2.radio(
-    "Song to visualise",
+    "Search for song by",
     options=["ID", "Name"]
 )
 if select_song_type == "ID":
     select_song_suggested = col2.text_input(
-        "Spotify song ID to visualise",
+        "ID of song to visualise",
         suggested_songs.index[0]
     )
     selected_song_name, selected_song_artist = track_info.loc[select_song_suggested, ["SongName", "Artist"]].values
 else:
     select_song_suggested_name = col2.selectbox(
-        "Spotify song name to visualise",
+        "Name of song to visualise",
         track_info.SongNameArtist.unique()
     )
     tmp = (
