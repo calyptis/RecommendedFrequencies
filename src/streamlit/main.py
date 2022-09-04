@@ -1,15 +1,19 @@
-import streamlit as st
 import os
-import pandas as pd
 from io import BytesIO
+
+import pandas as pd
+import catboost
+import streamlit as st
 from src.project_config import DATA_DIR
 from src.plotting.mood_board import plot_mood_board, plot_radial_plot
 from src.plotting.album_cover_collage import plot_album_covers
-from src.modelling.baseline import get_baseline, get_top_results
+from src.modelling.baseline import get_baseline_predictions, get_top_results
+from src.modelling.ml_catboost import (get_catboost_predictions, create_train_test_split, train_catboost)
+from src.modelling.ml_data import (create_song_triplets, create_song_pair_features)
+from src.modelling.config import (EUCLIDEAN_FEAT_COLS, CATBOOST_MODEL_FILE)
 from src.streamlit.utils import make_clickable_html
 from src.spotify.config import PLAYLIST_FILE, ALBUM_COVER_FILE, MAIN_DATA_FILE
 from src.spotify.utils import read_pickle
-from src.modelling.config import EUCLIDEAN_FEAT_COLS
 
 
 COL_ORDER = [
@@ -20,8 +24,9 @@ COL_ORDER = [
 ]
 
 SUGGESTION_ENGINES = {
-    "Numeric Song Attributes": get_baseline,
-    "Numeric Song Attributes + Genre": get_baseline
+    "Baseline (without genre)": get_baseline_predictions,
+    "Baseline (with genre)": get_baseline_predictions,
+    "Catboost": get_catboost_predictions,
 }
 
 GENRE_SIMILARITY = [
@@ -33,7 +38,7 @@ GENRE_SIMILARITY = [
 ]
 SIMILAR_SONGS_STEPS = 10
 
-# If certain playlists should be excluded from the dashboard
+# If certain d_playlists should be excluded from the dashboard
 # they need to be listed in the file below
 exclude_playlist_path = os.path.join(DATA_DIR, "exclude_playlists.txt")
 if os.path.exists(exclude_playlist_path):
@@ -42,7 +47,7 @@ if os.path.exists(exclude_playlist_path):
 else:
     exclude_playlists = []
 
-# In case it is easier to just list the playlists that a user should
+# In case it is easier to just list the d_playlists that a user should
 # be able to choose from
 show_playlist_path = os.path.join(DATA_DIR, "show_playlists.txt")
 if os.path.exists(show_playlist_path):
@@ -65,11 +70,11 @@ def get_playlists():
 
 
 @st.cache(allow_output_mutation=True)
-def get_data():
-    data = pd.read_pickle(MAIN_DATA_FILE)
-    data.index.name = "ID"
-    data.Artist = data.Artist.apply(lambda x: x.split(" | ")[0])
-    return data
+def get_features():
+    df_features = pd.read_pickle(MAIN_DATA_FILE)
+    df_features.index.name = "ID"
+    df_features.Artist = df_features.Artist.apply(lambda x: x.split(" | ")[0])
+    return df_features
 
 
 @st.cache
@@ -78,17 +83,17 @@ def get_album_covers():
     return {i[0]: i[-1] for i in album_covers}
 
 
-playlists = get_playlists()
-features = get_data()
-playlist_album_covers = get_album_covers()
-track_info = features[[i for i in COL_ORDER if i != "ID"]].copy()
-track_info["SongNameArtist"] = track_info.SongName + " - " + track_info.Artist
-all_songs_with_features = set(features.index)
+d_playlists = get_playlists()
+df_features = get_features()
+d_playlist_album_covers = get_album_covers()
+df_track_info = df_features[[i for i in COL_ORDER if i != "ID"]].copy()
+df_track_info["SongNameArtist"] = df_track_info.SongName + " - " + df_track_info.Artist
+all_songs_with_features = set(df_features.index)
 
 if show_playlists:
     playlist_options = show_playlists
 else:
-    playlist_options = sorted(set(playlists.keys()) - set(exclude_playlists))
+    playlist_options = sorted(set(d_playlists.keys()) - set(exclude_playlists))
 
 # --------- First row of page
 st.title("Recommended Frequencies: A Recommendation System For Playlists")
@@ -100,10 +105,10 @@ st.markdown("### 1. Choose a playlist")
 select_playlist = st.selectbox("", playlist_options)
 
 # --------- Get playlist related info
-playlist_tracks = sorted(list(set(playlists[select_playlist]["tracks"]).intersection(set(all_songs_with_features))))
-playlist_features = features.loc[playlist_tracks].copy()
-playlist_info = track_info.loc[playlist_tracks]
-mood_board = plot_mood_board(playlist_features[EUCLIDEAN_FEAT_COLS], title="", inline=False, metrics_version=1)
+playlist_tracks = sorted(list(set(d_playlists[select_playlist]["tracks"]).intersection(set(all_songs_with_features))))
+df_playlist_features = df_features.loc[playlist_tracks].copy()
+df_playlist_info = df_track_info.loc[playlist_tracks]
+mood_board = plot_mood_board(df_playlist_features[EUCLIDEAN_FEAT_COLS], title="", inline=False, metrics_version=1)
 
 # --------- Second row of page: playlist info
 col1, col2 = st.columns(2)
@@ -111,7 +116,7 @@ col1.markdown(f"#### Some songs in playlist «{select_playlist}»")
 if include_audio_preview:
     col1.write(
         (
-            playlist_info
+            df_playlist_info
             .reset_index()
             [COL_ORDER]
             .head(10)
@@ -123,7 +128,7 @@ if include_audio_preview:
 else:
     col1.dataframe(
         (
-            playlist_info
+            df_playlist_info
             .reset_index()
             [COL_ORDER]
             .head(10)
@@ -131,15 +136,17 @@ else:
         ),
         # height=600
     )
+
 # To copy list of songs into the presentation
-playlist_info.reset_index()[COL_ORDER].head(10).to_csv(os.path.join(DATA_DIR, "TMP_PLAYLIST_SONGS.csv"))
+# df_playlist_info.reset_index()[COL_ORDER].head(10).to_csv(os.path.join(DATA_DIR, "TMP_PLAYLIST_SONGS.csv"))
+
 col2.markdown(f"#### Song attributes for playlist «{select_playlist}»")
 col2.plotly_chart(mood_board)
 
 try:
     # Collage of album covers
-    # collage = plot_album_covers(list(playlist_features.AlbumCover.values[:10]))
-    collage = plot_album_covers(playlist_album_covers[select_playlist])
+    # collage = plot_album_covers(list(df_playlist_features.AlbumCover.values[:10]))
+    collage = plot_album_covers(d_playlist_album_covers[select_playlist])
     # Use st.image with image in buffer to allow transparent background, instead of st.pyplot(collage)
     buf = BytesIO()
     collage.savefig(buf, format="png", bbox_inches="tight", transparent=True, dpi=3*collage.dpi)
@@ -153,13 +160,31 @@ st.markdown("### 2. Find similar songs")
 controls = st.expander("Similarity Settings")
 select_suggestion_engine = controls.selectbox("Similarity Features", SUGGESTION_ENGINES.keys())
 suggestion_engine = SUGGESTION_ENGINES[select_suggestion_engine]
-if select_suggestion_engine == "Numeric Song Attributes + Genre":
+
+if select_suggestion_engine == "Baseline (with genre)":
     genre_similarity = controls.selectbox("Genre Similarity Metric", GENRE_SIMILARITY, index=1)
     genre_weight = controls.slider("Genre Weight", min_value=0.0, max_value=1.0, value=0.3, step=0.1)
-else:
+    model_catboost = None
+elif select_suggestion_engine == "Baseline (without genre)":
     # Default values
     genre_weight = 0
     genre_similarity = None
+    model_catboost = None
+elif select_suggestion_engine == "Catboost":
+    genre_weight = 0
+    genre_similarity = None
+    if not os.path.exists(CATBOOST_MODEL_FILE):
+        df_example_triplets = create_song_triplets()
+        df_features_for_model = create_song_pair_features(df_example_triplets)
+        df_train, df_test = create_train_test_split(df_features_for_model)
+        model_catboost = train_catboost(df_train, df_test)
+        model_catboost.save_model(CATBOOST_MODEL_FILE)
+    else:
+        model_catboost = catboost.CatBoostClassifier()
+        model_catboost.load_model(fname=CATBOOST_MODEL_FILE)
+else:
+    raise Exception(f"Suggestion engine '{select_suggestion_engine}' not yet implemented")
+
 top_n = controls.slider(
     "Nr of Suggestions",
     min_value=SIMILAR_SONGS_STEPS,
@@ -172,45 +197,74 @@ top_n = controls.slider(
 
 
 @st.cache
-def get_results_wrapper(_suggestion_engine, _playlist_features, _songs_available_for_suggestion_features,
-                        _genre_similarity):
+def get_results_wrapper(
+        _suggestion_engine,
+        _df_playlist_features,
+        _df_songs_available_for_suggestion_features,
+        _genre_similarity,
+        _model_catboost,
+        _playlist_name
+):
     """
     Wrap suggestion_engine into a function in order to use st.cache()
     """
     if _genre_similarity == "everynoise":
         _songs_available_for_suggestion_features = (
-            _songs_available_for_suggestion_features
+            _df_songs_available_for_suggestion_features
             .query("missing_everynoise_genre == False")
+            .copy()
         )
     return _suggestion_engine(
-        playlist_features=_playlist_features,
-        songs_available_for_suggestion_features=_songs_available_for_suggestion_features,
+        df_playlist_features=_df_playlist_features,
+        df_songs_available_for_suggestion_features=_df_songs_available_for_suggestion_features,
         genre_similarity=_genre_similarity,
+        model_catboost=_model_catboost,
+        playlist_name=_playlist_name
     )
 
 
 @st.cache
-def get_top_results_wrapper(_song_similarity, _genre_weight, _top_n):
+def get_top_results_wrapper(_select_suggestion_engine, _df_song_similarity, _genre_weight, _top_n):
     """
     Wrap get_top_results into a function in order to use st.cache()
     """
-    return get_top_results(results=_song_similarity, genre_weight=genre_weight, n=_top_n)
+    if _select_suggestion_engine == "Catboost":
+        return _df_song_similarity.head(top_n)
+    else:
+        return get_top_results(df_results=_df_song_similarity, genre_weight=genre_weight, n=_top_n)
 
 
 songs_available_for_suggestion = list(all_songs_with_features - set(playlist_tracks))
 print("Number of songs available for suggestion: ", len(songs_available_for_suggestion))
-songs_available_for_suggestion_features = features.loc[songs_available_for_suggestion].copy()
-song_similarity = get_results_wrapper(
+df_songs_available_for_suggestion_features = df_features.loc[songs_available_for_suggestion].copy()
+df_song_similarity = get_results_wrapper(
     _suggestion_engine=suggestion_engine,
-    _playlist_features=playlist_features,
-    _songs_available_for_suggestion_features=songs_available_for_suggestion_features,
+    _df_playlist_features=df_playlist_features,
+    _df_songs_available_for_suggestion_features=df_songs_available_for_suggestion_features,
     _genre_similarity=genre_similarity,
+    _model_catboost=model_catboost,
+    _playlist_name=select_playlist
 )
-suggested_songs = get_top_results_wrapper(_song_similarity=song_similarity, _genre_weight=genre_weight, _top_n=top_n)
-suggested_songs_info = track_info.join(suggested_songs, how="inner").sort_values(by="Distance")
-suggested_songs_info["SongNameArtist"] = suggested_songs_info.SongName + " - " + suggested_songs_info.Artist
-for c in ["EuclideanDistance", "GenreDistance", "Distance"]:
-    suggested_songs_info[c] = suggested_songs_info[c].map(lambda x: '{0:.2f}'.format(x))
+df_suggested_songs = get_top_results_wrapper(
+    _select_suggestion_engine=select_suggestion_engine,
+    _df_song_similarity=df_song_similarity,
+    _genre_weight=genre_weight,
+    _top_n=top_n
+)
+df_suggested_songs_info = (
+    df_track_info
+    .join(df_suggested_songs, how="inner")
+    .sort_values(by="Similarity", ascending=False)
+)
+df_suggested_songs_info["SongNameArtist"] = (
+    df_suggested_songs_info.SongName +
+    " - " +
+    df_suggested_songs_info.Artist
+)
+for c in ["EuclideanDistance", "GenreDistance", "Similarity"]:
+    # Not available for Catboost
+    if c in df_suggested_songs_info.columns:
+        df_suggested_songs_info[c] = df_suggested_songs_info[c].map(lambda x: '{0:.2f}'.format(x))
 
 # --------- Fourth row of page: display results
 col1, col2 = st.columns(2)
@@ -220,16 +274,16 @@ if top_n > 10:
     result_page = col1.selectbox("Result Page # ", range(1, top_n // 10))
 else:
     result_page = 1
-start = (result_page-1)*SIMILAR_SONGS_STEPS
-end = result_page*SIMILAR_SONGS_STEPS
+start = (result_page-1) * SIMILAR_SONGS_STEPS
+end = result_page * SIMILAR_SONGS_STEPS
 
 if include_audio_preview:
     col1.write(
         (
-            suggested_songs_info
+            df_suggested_songs_info
             .reset_index()
             .iloc[start:end]
-            [COL_ORDER + ["Distance"]]
+            [COL_ORDER + ["Similarity"]]
             .style.format({'PreviewURL': make_clickable_html})
             .to_html()
         ),
@@ -239,10 +293,10 @@ if include_audio_preview:
 else:
     col1.dataframe(
         (
-            suggested_songs_info
+            df_suggested_songs_info
             .reset_index()
             .iloc[start:end]
-            [COL_ORDER + ["Distance"]]
+            [COL_ORDER + ["Similarity"]]
             .drop("PreviewURL", axis=1)
         ),
         # height=600
@@ -251,7 +305,7 @@ col2.markdown(
     "#### Visualise similarity of proposed song"
 )
 # To copy list of songs into the presentation
-# suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))
+# df_suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))
 select_song_type = col2.radio(
     "Search for song by",
     options=["ID", "Name"]
@@ -259,16 +313,16 @@ select_song_type = col2.radio(
 if select_song_type == "ID":
     select_song_suggested = col2.text_input(
         "ID of song to visualise",
-        suggested_songs.index[0]
+        df_suggested_songs.index[0]
     )
-    selected_song_name, selected_song_artist = track_info.loc[select_song_suggested, ["SongName", "Artist"]].values
+    selected_song_name, selected_song_artist = df_track_info.loc[select_song_suggested, ["SongName", "Artist"]].values
 else:
     select_song_suggested_name = col2.selectbox(
         "Name of song to visualise",
-        track_info.SongNameArtist.unique()
+        df_track_info.SongNameArtist.unique()
     )
     tmp = (
-        track_info
+        df_track_info
         .loc[
             lambda x: x.SongNameArtist == select_song_suggested_name,
             ["SongName", "Artist"]
@@ -279,7 +333,7 @@ else:
     select_song_suggested = tmp.index[0]
 
 song_radial_plot_trace = plot_radial_plot(
-    features.loc[select_song_suggested].copy(),
+    df_features.loc[select_song_suggested].copy(),
     title=f"{selected_song_name} by {selected_song_artist}",
     only_return_trace=True
 )
@@ -292,7 +346,7 @@ mood_board.update_layout(
 col2.plotly_chart(mood_board)
 if not include_audio_preview:
     col2.markdown("##### Listen to proposed song")
-    preview_audio = track_info.loc[select_song_suggested, "PreviewURL"]
+    preview_audio = df_track_info.loc[select_song_suggested, "PreviewURL"]
     if not pd.isnull(preview_audio):
         col2.audio(preview_audio)
     else:
