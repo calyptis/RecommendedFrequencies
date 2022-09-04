@@ -24,8 +24,7 @@ COL_ORDER = [
 ]
 
 SUGGESTION_ENGINES = {
-    "Baseline (without genre)": get_baseline_predictions,
-    "Baseline (with genre)": get_baseline_predictions,
+    "Baseline": get_baseline_predictions,
     "Catboost": get_catboost_predictions,
 }
 
@@ -161,14 +160,9 @@ controls = st.expander("Similarity Settings")
 select_suggestion_engine = controls.selectbox("Similarity Features", SUGGESTION_ENGINES.keys())
 suggestion_engine = SUGGESTION_ENGINES[select_suggestion_engine]
 
-if select_suggestion_engine == "Baseline (with genre)":
+if select_suggestion_engine == "Baseline":
     genre_similarity = controls.selectbox("Genre Similarity Metric", GENRE_SIMILARITY, index=1)
-    genre_weight = controls.slider("Genre Weight", min_value=0.0, max_value=1.0, value=0.3, step=0.1)
-    model_catboost = None
-elif select_suggestion_engine == "Baseline (without genre)":
-    # Default values
-    genre_weight = 0
-    genre_similarity = None
+    genre_weight = controls.slider("Genre Weight", min_value=0.0, max_value=1.0, value=0.0, step=0.1)
     model_catboost = None
 elif select_suggestion_engine == "Catboost":
     genre_weight = 0
@@ -189,13 +183,11 @@ top_n = controls.slider(
     "Nr of Suggestions",
     min_value=SIMILAR_SONGS_STEPS,
     max_value=SIMILAR_SONGS_STEPS*10,
-    value=SIMILAR_SONGS_STEPS,
+    value=SIMILAR_SONGS_STEPS*3,
     step=SIMILAR_SONGS_STEPS
 )
 
 # --------- Find most similar songs
-
-
 @st.cache
 def get_results_wrapper(
         _suggestion_engine,
@@ -261,10 +253,9 @@ df_suggested_songs_info["SongNameArtist"] = (
     " - " +
     df_suggested_songs_info.Artist
 )
-for c in ["EuclideanDistance", "GenreDistance", "Similarity"]:
-    # Not available for Catboost
-    if c in df_suggested_songs_info.columns:
-        df_suggested_songs_info[c] = df_suggested_songs_info[c].map(lambda x: '{0:.2f}'.format(x))
+
+
+df_suggested_songs_info["Similarity"] = df_suggested_songs_info["Similarity"].map(lambda x: '{0:.1f}%'.format(x*100))
 
 # --------- Fourth row of page: display results
 col1, col2 = st.columns(2)
