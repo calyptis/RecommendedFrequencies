@@ -99,7 +99,7 @@ def get_genre_co_occurrence_model(debug: bool = True) -> None:
         pickle.dump(playlist_counters, open(CO_OCCURRENCE_FILE, "wb"))
 
 
-def _get_position(item: BeautifulSoup.element.Tag) -> Tuple[str, int, int]:
+def _get_position(item) -> Tuple[str, int, int]:
     """
     Parse a genre HTML tag on everynoise.com
 
