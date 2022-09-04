@@ -356,15 +356,19 @@ def get_album_covers_for_playlists(verbose: int = 0):
     -------
 
     """
-    playlists = pickle.load(open(PLAYLIST_FILE, "rb"))
+    playlists = read_pickle(PLAYLIST_FILE)
     data = pickle.load(open(MAIN_DATA_FILE, "rb"))
     items = []
     count = 0
     update_interval = 3
     if os.path.exists(ALBUM_COVER_FILE):
+        if verbose >= 1:
+            logging.info("Reading in existing album cover file")
         existing_playlist_album_covers = read_pickle(ALBUM_COVER_FILE)
         existing_ids = [i[1] for i in existing_playlist_album_covers]
         playlists = [i for i in playlists if i["id"] not in existing_ids]
+    if verbose >= 1:
+        logging.info(f"Downloading album covers for {len(playlists)} playlists")
     for playlist_info in playlists:
         count += 1
         playlist_id = playlist_info["id"]
