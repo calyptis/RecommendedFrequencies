@@ -17,10 +17,6 @@ EUCLIDEAN_FEAT_COLS = [
     "AlbumReleaseYear"
 ]
 
-WORD2VEC_FEAT_COLS = [
-    "GenreWord2VecEmbedding"
-]
-
 EVERYNOISE_FEAT_COL = "GenreEveryNoiseEmbedding"
 
 GENRE_COL = "GenreList"

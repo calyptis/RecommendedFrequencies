@@ -17,6 +17,7 @@ from src.spotify.config import (
     PLAYLIST_GENRE_FILE, TRACK_PARSED_FILE,
     ALBUM_COVER_FILE
 )
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -46,7 +47,7 @@ def get_spotipy_instance() -> spotipy.client.Spotify:
     return sp_instance
 
 
-def get_tracks(sp: spotipy.client.Spotify, verbose: int=0):
+def get_tracks(sp: spotipy.client.Spotify, verbose: int = 0):
     """
     Get all songs in a user's library.
 
@@ -79,7 +80,7 @@ def get_tracks(sp: spotipy.client.Spotify, verbose: int=0):
             if verbose >= 1:
                 logging.info(f"Downloaded {offset} tracks")
             pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
-            time.sleep(0.2)  # Make sure not too many API calls are made in a short amount of time
+            # time.sleep(0.2)  # Make sure not too many API calls are made in a short amount of time
             results = []
     pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
 
@@ -198,10 +199,10 @@ def get_genres(sp: spotipy.client.Spotify, verbose: int = 0):
         if not entry:
             continue
         parsed_entry = {
-                "GenreList": entry["genres"],
-                "Artist": entry["name"],
-                "ArtistID": artist_id
-            }
+            "GenreList": entry["genres"],
+            "Artist": entry["name"],
+            "ArtistID": artist_id
+        }
         results.append(parsed_entry)
         if count % update_interval == 0:
             if verbose >= 1:

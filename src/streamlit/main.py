@@ -7,7 +7,7 @@ import streamlit as st
 from src.project_config import DATA_DIR
 from src.plotting.mood_board import plot_mood_board, plot_radial_plot
 from src.plotting.album_cover_collage import plot_album_covers
-from src.modelling.baseline import get_baseline_predictions, get_top_results
+from src.modelling.utils import get_top_results
 from src.modelling.ml_catboost import (get_catboost_predictions, create_train_test_split, train_catboost)
 from src.modelling.ml_data import (create_song_triplets, create_song_pair_features)
 from src.modelling.config import (EUCLIDEAN_FEAT_COLS, CATBOOST_MODEL_FILE)
@@ -24,16 +24,11 @@ COL_ORDER = [
 ]
 
 SUGGESTION_ENGINES = {
-    "Baseline": get_baseline_predictions,
     "Catboost": get_catboost_predictions,
 }
 
 GENRE_SIMILARITY = [
-    "word2vec",
     "everynoise",
-    "co-occurrence",
-    "set-similarity",
-    # "weighted set-similarity"
 ]
 SIMILAR_SONGS_STEPS = 10
 

@@ -9,18 +9,10 @@ Thus, methods like collaborative filtering are outside of the current scope.
 
 A brief overview of the entire project can be found in these [presentation slides](resources/presentation/Presentation.pdf).
 
-Specifically, under the current scope, song suggestions are based on similarities between audio features, song attributes and — optionally — genre.
+Specifically, under the current scope, song suggestions are based on a trained Catboost model that uses
+audio features, song attributes and genre information in the form of embeddings provided by [Every Noise at Once](https://everynoise.com/).
 The audio features used by the app are a subset of those provided by [Spotify's API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features) 
 in addition to the year of the song's album release. All features used are listed [here](#audio_features).
-
-Similarities metrics used by the app are the following:
-  - For audio features and year of album release:
-    - Euclidean distance 
-  - For genres, users can choose between:
-    - Jaccard index
-    - Cosine distance of `word2vec` word embeddings
-    - Co-occurrence
-    - Euclidean distance of genre embeddings provided by [Every Noise at Once](https://everynoise.com/)
 
 The app is developed using `streamlit`.
 
@@ -132,92 +124,18 @@ In addition, metadata on songs are considered. Specifically, the 10th audio attr
 
 All these features are cast to a range of [0, 1] if they are not already.
 
-## 2. Similarity metrics
+## 2. Model
 
-To measure the similarity between two songs, several similarity metrics are employed in this project.
-The specific metric depends on the type of feature.
-Two type of features are used in to measure song similarities: 
-audio features as outlined [here](#audio_features) and genres.
+To measure the similarity between two songs, a `Catboost` model is trained through contrastive learning.
+Positive song pairs are generated based on their occurrence in the same playlist.
+Negative song pairs are generated based on user specified pairs of playlists that are very different.
 
-### 1. For audio features
-
-#### 1) Weighted [Euclidean distance](https://en.wikipedia.org/wiki/Euclidean_distance)
-
-<img src="resources/images/euclidean_distance.png" width="350" />
-
-where `n` is the dimension of the audio feature vectors with `n = 10`.
-`s` is the feature vector for a given song.
-`p` is a vector containing the averages across all songs in the playlist with one element per feature.
-σ is a vector containing the standard deviations across all songs in the playlist with one element per feature.
-
-### 2. For genres
-
-#### 1) [Jaccard index](https://en.wikipedia.org/wiki/Jaccard_index)
-
-<img src="resources/images/jaccard_index.png" width="350" />
-
-where `S1` is the set of genres in a playlist and `S2` the set of genres for a given song.
-
-#### 2) [Word2Vec](https://en.wikipedia.org/wiki/Word2vec)
-
-Get the word embeddings of genres using a pre-trained word2vec model from [FastText](https://fasttext.cc).
-The `word2vec` technique falls under the domain of Natural Language Processing.
-
-In the case of this project, a song's list of genres is treated as a sentence with an individual genre being a word. 
-Thus, the embedding of a song is obtained for this sentence composed of genre terms.
-Similarly, the embedding of a playlist is obtained by averaging across all of its songs' embeddings.
-
-To get the similarity between a playlist and a song, the cosine distance between the two embeddings is calculated.
-
-A crucial limitation of this approach inevitably arises:
-Pre-trained models are not typically trained on documents that focus on music or that describe relationships of genres.
-Thus, the embeddings are likely not to not reflect genre similarities very well.
-
-An illustration will help outline this point:
-In one of the typical text book examples of `word2vec`, the word ***kitten*** is more similar to ***cat*** than to ***dog***.
-Testing this using genre terms, ***techno*** is not more similar to ***pop*** than to ***jazz*** as one would suppose.
-Below is a code example to reproduce this.
-
-```python
-import fasttext
-from sklearn.metrics.pairwise import cosine_distances as cosine
-
-ft = fasttext.load_model('cc.en.300.bin')
-
-# Text book example: note that lower values imply higher degree of similarity
-cosine(ft.get_word_vector("kitten").reshape(1, -1), ft.get_word_vector("cat").reshape(1, -1))
->>> 0.19
-cosine(ft.get_word_vector("kitten").reshape(1, -1), ft.get_word_vector("dog").reshape(1, -1))
->>> 0.39
-
-# Music genre example
-cosine(ft.get_word_vector("techno").reshape(1, -1), ft.get_word_vector("pop").reshape(1, -1))
->>> 0.63
-cosine(ft.get_word_vector("techno").reshape(1, -1), ft.get_word_vector("jazz").reshape(1, -1))
->>> 0.51
-```
-
-A more thorough analysis on how `word2vec` genre similarities compare to `everynoise` is available
-in [this notebook](notebooks/Word2Vec_vs_EveryNoise.ipynb).
-
-#### 3) Co-occurrences
-
-Based on a user's list of playlists, calculate how often a pair of two genres occurs within a given playlist.
-The higher this co-occurrence, the more similar two genres are.
-Formally, this can be expressed in the following formula:
-
-<img src="resources/images/co_occurrence_formula.png" width="350" />
-
-with `g1` and `g2` being two genres and `P` the set of playlists. 
-
-#### 4) Everynoise embeddings
-
-The position of a genre in the musical genre space measured by the Every Noise at Once project is used as its 
-embedding. Similar genres lie close to each other in this space, of which a visual representation is available on
+For each song pair, the model uses the audio features as well as their location in the genre space as measured by 
+the Every Noise at Once project. Similar genres lie close to each other in this space, of which a visual representation is available on
 the [project's website](https://everynoise.com).
 Since this musical genre space is two-dimensional, each genre is represented by its `(x, y)` location in the scatter plot.
 
-Genre similarity is then simply the euclidean distance between the two locations.
+A song's location in this space is simply the average of all its associated genres.
 
 # Known Bugs:
 - All audio previews are sometimes played at the same time when updating the dashboard.

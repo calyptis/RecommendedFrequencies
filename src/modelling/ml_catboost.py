@@ -7,6 +7,8 @@ from sklearn.metrics import accuracy_score
 
 from src.modelling.config import CATBOOST_FEATURES
 
+# TODO: Add docstrings
+
 
 def create_train_test_split(df_for_model: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # TODO: Use train_test_split

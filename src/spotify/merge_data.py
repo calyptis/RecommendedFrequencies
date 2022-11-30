@@ -5,7 +5,6 @@ import numpy as np
 from src.spotify.config import (
     PREVIEW_FILE,
     GENRE_EVERYNOISE_EMBEDDING_FILE,
-    GENRE_WORD2VEC_EMBEDDING_FILE,
     TRACK_FEAT_FILE,
     TRACK_PARSED_FILE,
     MAIN_DATA_FILE
@@ -16,7 +15,6 @@ def merge_data():
     """
     Merges all data sources into a single file that can be used to calculate song similarities.
     """
-    genres_word2vec_df = pd.read_json(GENRE_WORD2VEC_EMBEDDING_FILE)
     genres_everynoise_df = pd.read_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
 
     tracks_df = pd.read_csv(TRACK_PARSED_FILE).set_index("ID")
@@ -52,7 +50,6 @@ def merge_data():
     # Get genre profile of each artist
     tmp = (
         tmp
-        .merge(genres_word2vec_df[["ArtistID", "GenreWord2VecEmbedding", "GenreList"]], on="ArtistID", how="left")
         .merge(genres_everynoise_df[["ArtistID", "GenreEveryNoiseEmbedding"]], on="ArtistID", how="left")
     )
     # As a track can be from a collaboration of artists with a different genre profile,
@@ -62,7 +59,6 @@ def merge_data():
         .dropna()
         .groupby("ID")
         .agg(
-            GenreWord2VecEmbedding=("GenreWord2VecEmbedding", lambda g: np.stack(g).mean(axis=0)),
             GenreEveryNoiseEmbedding=("GenreEveryNoiseEmbedding", lambda g: np.stack(g).mean(axis=0)),
             GenreList=("GenreList", lambda x: reduce(lambda a, b: a + b, x))
         )

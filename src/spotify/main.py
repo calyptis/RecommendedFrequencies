@@ -69,11 +69,8 @@ def pipeline(sp: spotipy.client.Spotify):
         logging.info(msg=MSG.format("Download Every Noise At Once Genre Space"))
         download_everynoise_genre_space()
     if not os.path.exists(GENRE_EVERYNOISE_EMBEDDING_FILE):
-        logging.info(msg=MSG.format("Obtain everynoise genre embeddings"))
+        logging.info(msg=MSG.format("Obtain Every Noise At Once Genre embeddings"))
         get_everynoise_embeddings()
-    if not os.path.exists(GENRE_WORD2VEC_EMBEDDING_FILE):
-        logging.info(msg=MSG.format("Obtain word2vec genre embeddings"))
-        get_word2vec_embeddings()
     if not os.path.exists(MAIN_DATA_FILE):
         logging.info(msg=MSG.format("Merge data"))
         merge_data()
