@@ -1,8 +1,6 @@
-
-
 def make_clickable_df(val):
     """
-    Wraps value into an HTML tag in order to allow the value to be clickable if rendered as HTML.
+    Wrap value into an HTML tag in order to allow the value to be clickable if rendered as HTML.
 
     Parameters
     ----------
@@ -16,7 +14,7 @@ def make_clickable_df(val):
 
 def make_clickable_html(val, version=2):
     """
-    Wraps value into an HTML tag that allows audio to be played.
+    Wrap value into an HTML tag that allows audio to be played.
 
     Parameters
     ----------
@@ -36,8 +34,5 @@ def make_clickable_html(val, version=2):
         src="{}" width="80" height="30" frameborder="0" allowtransparency="true" allow="encrypted-media"> 
     </iframe>
     """
-    versions = {
-        1: v1,
-        2: v2
-    }
+    versions = {1: v1, 2: v2}
     return versions[version].format(val)

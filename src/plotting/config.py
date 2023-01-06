@@ -8,7 +8,10 @@ RADIAL_COLS = [
     "valence",
     "tempo",
     "loudness",
-    "AlbumReleaseYear"
+    "AlbumReleaseYear",
 ]
 
-RADIAL_COLS_PRETTY = [i.capitalize() if i != "AlbumReleaseYear" else "Year of Album Release" for i in RADIAL_COLS]
+RADIAL_COLS_PRETTY = [
+    i.capitalize() if i != "AlbumReleaseYear" else "Year of Album Release"
+    for i in RADIAL_COLS
+]

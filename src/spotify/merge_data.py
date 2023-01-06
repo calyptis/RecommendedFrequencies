@@ -1,20 +1,16 @@
-from sklearn.preprocessing import MinMaxScaler
 from functools import reduce
-import pandas as pd
+
 import numpy as np
-from src.spotify.config import (
-    PREVIEW_FILE,
-    GENRE_EVERYNOISE_EMBEDDING_FILE,
-    TRACK_FEAT_FILE,
-    TRACK_PARSED_FILE,
-    MAIN_DATA_FILE
-)
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+
+from src.spotify.config import (GENRE_EVERYNOISE_EMBEDDING_FILE,
+                                MAIN_DATA_FILE, PREVIEW_FILE, TRACK_FEAT_FILE,
+                                TRACK_PARSED_FILE)
 
 
 def merge_data():
-    """
-    Merges all data sources into a single file that can be used to calculate song similarities.
-    """
+    """Merge all data sources into a single file that can be used to calculate song similarities."""
     genres_everynoise_df = pd.read_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
 
     tracks_df = pd.read_csv(TRACK_PARSED_FILE).set_index("ID")
@@ -23,24 +19,39 @@ def merge_data():
     features_df = pd.read_csv(TRACK_FEAT_FILE).set_index("ID")
     features_df.drop(
         [
-            "type", "uri", "track_href", "analysis_url",
-            "duration_ms", "time_signature", "mode", "key"
+            "type",
+            "uri",
+            "track_href",
+            "analysis_url",
+            "duration_ms",
+            "time_signature",
+            "mode",
+            "key",
         ],
-        axis=1, inplace=True
+        axis=1,
+        inplace=True,
     )
 
     # Merge track data-frame to get year of release
     features_df = features_df.join(
-        tracks_df[["AlbumReleaseYear", "ArtistID", "SongName", "Artist", "PreviewURL", "AlbumCover"]],
-        how="inner"
+        tracks_df[
+            [
+                "AlbumReleaseYear",
+                "ArtistID",
+                "SongName",
+                "Artist",
+                "PreviewURL",
+                "AlbumCover",
+            ]
+        ],
+        how="inner",
     )
     # Note that songs can have more than one artist => get list of artist IDs
     features_df["ArtistIDList"] = features_df.ArtistID.str.split("|")
 
     # Merge artist genre embeddings
     tmp = (
-        features_df
-        .loc[:, ["ArtistIDList"]]
+        features_df.loc[:, ["ArtistIDList"]]
         # One row per artist in list of artist IDs
         .explode("ArtistIDList")
         .rename(columns={"ArtistIDList": "ArtistID"})
@@ -48,26 +59,32 @@ def merge_data():
         .reset_index()
     )
     # Get genre profile of each artist
-    tmp = (
-        tmp
-        .merge(genres_everynoise_df[["ArtistID", "GenreEveryNoiseEmbedding"]], on="ArtistID", how="left")
+    tmp = tmp.merge(
+        genres_everynoise_df[["ArtistID", "GenreEveryNoiseEmbedding", "GenreList"]],
+        on="ArtistID",
+        how="left",
     )
     # As a track can be from a collaboration of artists with a different genre profile,
     # stack all the genre embeddings of each artist involved in a track and average them
     tmp = (
-        tmp
-        .dropna()
+        tmp.dropna()
         .groupby("ID")
         .agg(
-            GenreEveryNoiseEmbedding=("GenreEveryNoiseEmbedding", lambda g: np.stack(g).mean(axis=0)),
-            GenreList=("GenreList", lambda x: reduce(lambda a, b: a + b, x))
+            GenreEveryNoiseEmbedding=(
+                "GenreEveryNoiseEmbedding",
+                lambda g: np.stack(g).mean(axis=0),
+            ),
+            GenreList=("GenreList", lambda x: reduce(lambda a, b: a + b, x)),
         )
     )
-    tmp["missing_everynoise_genre"] = tmp.GenreEveryNoiseEmbedding.apply(lambda x: pd.isnull(x).sum() > 0)
-    data = features_df.join(tmp, how="inner")
+    tmp["missing_everynoise_genre"] = tmp.GenreEveryNoiseEmbedding.apply(
+        lambda x: pd.isnull(x).sum() > 0
+    )
+    data = features_df.join(tmp, how="left")
+    data.missing_everynoise_genre.fillna(True, inplace=True)
 
     # In case of collaborations, only care about the fact that the single occurrence of a given genre
-    data["GenreSet"] = data.GenreList.apply(set)
+    data["GenreSet"] = data.GenreList.apply(lambda x: set(x) if isinstance(x, list) else {})
 
     # Normalize features that are not yet normalized
     cols_to_scale = ["tempo", "loudness", "AlbumReleaseYear"]
@@ -91,7 +108,12 @@ def merge_data():
 
     # For some artists, no genre info is available, e.g. John Newman "34v5MVKeQnIo0CWYMbbrPf"
     # For now, affected songs are removed
-    mask = data.GenreList.apply(len) != 0
-    data = data.loc[mask]
+    # data = data.query("~missing_everynoise_genre")
+    # For now set their genre centroid to (0, 0)
+    data["GenreEveryNoiseEmbedding"] = (
+        data
+        .GenreEveryNoiseEmbedding
+        .apply(lambda x: [0, 0] if x is np.nan or np.isnan(x).sum() == 2 else x)
+    )
 
     data.to_pickle(MAIN_DATA_FILE)

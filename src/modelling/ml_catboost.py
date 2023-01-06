@@ -1,18 +1,31 @@
 from typing import Tuple
 
-import pandas as pd
-import numpy as np
 import catboost
+import numpy as np
+import pandas as pd
 from sklearn.metrics import accuracy_score
 
 from src.modelling.config import CATBOOST_FEATURES
 
-# TODO: Add docstrings
 
+def create_train_test_split(
+    df_for_model: pd.DataFrame,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    TODO: add docstring.
 
-def create_train_test_split(df_for_model: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    Parameters
+    ----------
+    df_for_model: pd.DataFrame
+
+    Returns
+    -------
+
+    """
     # TODO: Use train_test_split
-    train_examples = np.random.choice(a=df_for_model.index, size=int(len(df_for_model) * 0.8), replace=False)
+    train_examples = np.random.choice(
+        a=df_for_model.index, size=int(len(df_for_model) * 0.8), replace=False
+    )
     test_examples = list(set(df_for_model.index) - set(train_examples))
     df_train = df_for_model.loc[train_examples]
     df_test = df_for_model.loc[test_examples]
@@ -20,7 +33,21 @@ def create_train_test_split(df_for_model: pd.DataFrame) -> Tuple[pd.DataFrame, p
     return df_train, df_test
 
 
-def train_catboost(df_train: pd.DataFrame, df_test: pd.DataFrame) -> catboost.core.CatBoostClassifier:
+def train_catboost(
+    df_train: pd.DataFrame, df_test: pd.DataFrame
+) -> catboost.core.CatBoostClassifier:
+    """
+    TODO: add docstring.
+
+    Parameters
+    ----------
+    df_train
+    df_test
+
+    Returns
+    -------
+
+    """
     target_col = "target"
     feature_cols = df_train.columns.difference([target_col, "ID"])
     categorical_feature_cols = ["playlist"]
@@ -46,8 +73,23 @@ def get_catboost_predictions(
     df_playlist_features: pd.DataFrame,
     df_songs_available_for_suggestion_features: pd.DataFrame,
     playlist_name: str,
-    **kwargs
+    **kwargs,
 ) -> pd.DataFrame:
+    """
+    TODO: add docstring.
+
+    Parameters
+    ----------
+    model_catboost
+    df_playlist_features
+    df_songs_available_for_suggestion_features
+    playlist_name
+    kwargs
+
+    Returns
+    -------
+
+    """
     # TODO: add genre_{x,y} already in MAIN_DATA_FILE
     for df in [df_playlist_features, df_songs_available_for_suggestion_features]:
         df["genre_x"] = df["GenreEveryNoiseEmbedding"].apply(lambda x: x[0])
@@ -55,15 +97,15 @@ def get_catboost_predictions(
     df_inference = create_inference_data(
         df_playlist_features[CATBOOST_FEATURES],
         df_songs_available_for_suggestion_features[CATBOOST_FEATURES],
-        playlist_name
+        playlist_name,
     )
-    df_inference["Similarity"] = model_catboost.predict_proba(df_inference[model_catboost.feature_names_])[:, 1]
+    df_inference["Similarity"] = model_catboost.predict_proba(
+        df_inference[model_catboost.feature_names_]
+    )[:, 1]
     df_inference_results = (
-        df_inference
-        .rename(columns={"ID_b": "ID"})
+        df_inference.rename(columns={"ID_b": "ID"})
         .groupby("ID")
-        .Similarity
-        .mean()
+        .Similarity.mean()
         .sort_values(ascending=False)
     )
 
@@ -73,18 +115,28 @@ def get_catboost_predictions(
 def create_inference_data(
     df_playlist_features: pd.DataFrame,
     df_songs_available_for_suggestion_features: pd.DataFrame,
-    playlist_name: str
+    playlist_name: str,
 ) -> pd.DataFrame:
+    """
+    TODO: add docstring.
+
+    Parameters
+    ----------
+    df_playlist_features
+    df_songs_available_for_suggestion_features
+    playlist_name
+
+    Returns
+    -------
+
+    """
     if "ID" not in df_playlist_features.columns:
         df_playlist_features.reset_index(inplace=True)
     if "ID" not in df_songs_available_for_suggestion_features.columns:
         df_songs_available_for_suggestion_features.reset_index(inplace=True)
 
-    df_inference = (
-        df_playlist_features
-        .merge(df_songs_available_for_suggestion_features, how="cross", suffixes=("_a", "_b"))
-        .assign(playlist=playlist_name)
-    )
+    df_inference = df_playlist_features.merge(
+        df_songs_available_for_suggestion_features, how="cross", suffixes=("_a", "_b")
+    ).assign(playlist=playlist_name)
 
     return df_inference
-

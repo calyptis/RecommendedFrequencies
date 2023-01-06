@@ -1,10 +1,11 @@
-import matplotlib.pylab as plt
 import math
+
+import matplotlib.pylab as plt
 
 
 def plot_album_covers(album_cover_list: list, kind: str = "row") -> plt.Figure:
     """
-    Plots a collection of selected album covers, either as a square (kind == 'square') or row (kind == 'row').
+    Plot a collection of selected album covers, either as a square (kind == 'square') or row (kind == 'row').
 
     Parameters
     ----------
@@ -19,9 +20,11 @@ def plot_album_covers(album_cover_list: list, kind: str = "row") -> plt.Figure:
     """
     if kind == "row":
         n = len(album_cover_list)
-        fig, axes = plt.subplots(1, n, figsize=(15, 15), facecolor='black')
+        fig, axes = plt.subplots(1, n, figsize=(15, 15), facecolor="black")
     elif kind == "square":
-        assert math.sqrt(len(album_cover_list)).is_integer(), "Album collage is a square"
+        assert math.sqrt(
+            len(album_cover_list)
+        ).is_integer(), "Album collage is a square"
         n = int(math.sqrt(len(album_cover_list)))
         fig, axes = plt.subplots(n, n, figsize=(15, 15), facecolor="black")
     else:
@@ -29,6 +32,6 @@ def plot_album_covers(album_cover_list: list, kind: str = "row") -> plt.Figure:
     axes = axes.flatten()
     for i, ax in enumerate(axes):
         ax.imshow(album_cover_list[i])
-        ax.axis('off')
+        ax.axis("off")
     fig.subplots_adjust(wspace=0, hspace=0)
     return fig

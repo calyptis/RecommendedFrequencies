@@ -1,13 +1,15 @@
-from difflib import SequenceMatcher
-import time
 import pickle
+from difflib import SequenceMatcher
+
 import pandas as pd
+
 from src.spotify.config import MAIN_DATA_FILE
 
 
 def clean_string(x: str):
     """
-    Cleans a string.
+    Clean a string.
+
     This function wraps several string operations into one.
 
     Parameters
@@ -23,7 +25,7 @@ def clean_string(x: str):
 
 def string_similarity(string_a: str, string_b: str):
     """
-    String similarity.
+    Perform string similarity.
 
     Parameters
     ----------
@@ -51,23 +53,23 @@ def get_chunks(original_list: list, n: int):
     -------
     """
     for i in range(0, len(original_list), n):
-        yield original_list[i:i + n]
-
-
-def timeout_wrapper(api_call, n_retries=5):
-    count = 0
-    while n_retries > count:
-        count += 1
-        try:
-            return api_call
-        except TimeoutError:
-            time.sleep(0.8 * count)
-    return None
+        yield original_list[i : i + n]
 
 
 def read_pickle(path_to_file):
+    """
+    TODO: add docstring.
+
+    Parameters
+    ----------
+    path_to_file
+
+    Returns
+    -------
+
+    """
     output = []
-    with open(path_to_file, 'rb') as f:
+    with open(path_to_file, "rb") as f:
         try:
             while True:
                 output += pickle.load(f)
@@ -91,9 +93,12 @@ def concat_lists(list_of_lists: list):
     return [val for sublist in list_of_lists for val in sublist]
 
 
-def get_frequent_genres(out_path: str = MAIN_DATA_FILE, thr: int = 50, return_type="list"):
+def get_frequent_genres(
+    out_path: str = MAIN_DATA_FILE, thr: int = 50, return_type="list"
+):
     """
     Find the most frequent genres in a user's library.
+
     This is useful because rarely occurring genres can be disregarded when measuring genre similarities.
 
     Parameters

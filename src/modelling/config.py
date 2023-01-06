@@ -1,6 +1,6 @@
 import os
-from src.project_config import DATA_DIR, MODEL_DIR
 
+from src.project_config import DATA_DIR, MODEL_DIR
 
 EUCLIDEAN_FEAT_COLS = [
     # Spotify audio features
@@ -14,7 +14,7 @@ EUCLIDEAN_FEAT_COLS = [
     "tempo",
     "loudness",
     # Spotify song metadata
-    "AlbumReleaseYear"
+    "AlbumReleaseYear",
 ]
 
 EVERYNOISE_FEAT_COL = "GenreEveryNoiseEmbedding"

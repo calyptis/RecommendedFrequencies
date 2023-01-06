@@ -4,3 +4,7 @@ data/*
 model/*
 .cache
 .spotify_caches
+**.ipynb_checkpoints/
+**.idea/
+catboost_info/
+**__pycache__
