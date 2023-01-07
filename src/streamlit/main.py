@@ -158,11 +158,12 @@ st.markdown("---")
 st.markdown("### 2. Find similar songs")
 controls = st.expander("Similarity Settings")
 select_suggestion_engine = controls.selectbox(
-    "Similarity Features", SUGGESTION_ENGINES.keys()
+    "Method to measure similarity", SUGGESTION_ENGINES.keys()
 )
 suggestion_engine = SUGGESTION_ENGINES[select_suggestion_engine]
 
 if select_suggestion_engine == "Catboost":
+    # TODO: Remove these variables from the script
     genre_weight = 0
     genre_similarity = None
     if not os.path.exists(CATBOOST_MODEL_FILE):
@@ -197,21 +198,13 @@ def get_results_wrapper(
     _suggestion_engine,
     _df_playlist_features,
     _df_songs_available_for_suggestion_features,
-    _genre_similarity,
     _model_catboost,
     _playlist_name,
 ):
     """Wrap suggestion_engine into a function in order to use st.cache()."""
-    if _genre_similarity == "everynoise":
-        _songs_available_for_suggestion_features = (
-            _df_songs_available_for_suggestion_features.query(
-                "missing_everynoise_genre == False"
-            ).copy()
-        )
     return _suggestion_engine(
         df_playlist_features=_df_playlist_features,
         df_songs_available_for_suggestion_features=_df_songs_available_for_suggestion_features,
-        genre_similarity=_genre_similarity,
         model_catboost=_model_catboost,
         playlist_name=_playlist_name,
     )
@@ -219,14 +212,14 @@ def get_results_wrapper(
 
 @st.cache
 def get_top_results_wrapper(
-    _select_suggestion_engine, _df_song_similarity, _genre_weight, _top_n
+    _select_suggestion_engine, _df_song_similarity, _top_n
 ):
     """Wrap get_top_results into a function in order to use st.cache()."""
     if _select_suggestion_engine == "Catboost":
         return _df_song_similarity.head(top_n)
     else:
         return get_top_results(
-            df_results=_df_song_similarity, genre_weight=genre_weight, n=_top_n
+            df_results=_df_song_similarity, n=_top_n
         )
 
 
@@ -240,14 +233,12 @@ df_song_similarity = get_results_wrapper(
     _suggestion_engine=suggestion_engine,
     _df_playlist_features=df_playlist_features,
     _df_songs_available_for_suggestion_features=df_songs_available_for_suggestion_features,
-    _genre_similarity=genre_similarity,
     _model_catboost=model_catboost,
     _playlist_name=select_playlist,
 )
 df_suggested_songs = get_top_results_wrapper(
     _select_suggestion_engine=select_suggestion_engine,
     _df_song_similarity=df_song_similarity,
-    _genre_weight=genre_weight,
     _top_n=top_n,
 )
 df_suggested_songs_info = df_track_info.join(

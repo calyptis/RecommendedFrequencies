@@ -73,7 +73,6 @@ def get_catboost_predictions(
     df_playlist_features: pd.DataFrame,
     df_songs_available_for_suggestion_features: pd.DataFrame,
     playlist_name: str,
-    **kwargs,
 ) -> pd.DataFrame:
     """
     TODO: add docstring.
@@ -84,7 +83,6 @@ def get_catboost_predictions(
     df_playlist_features
     df_songs_available_for_suggestion_features
     playlist_name
-    kwargs
 
     Returns
     -------
