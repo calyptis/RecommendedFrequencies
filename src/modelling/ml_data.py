@@ -5,8 +5,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from src.modelling.config import (CATBOOST_FEATURES, EUCLIDEAN_FEAT_COLS,
-                                  EVERYNOISE_FEAT_COL)
+from src.modelling.config import (CATBOOST_FEATURES)
 from src.spotify.config import (MAIN_DATA_FILE, PLAYLIST_FILE,
                                 SIMILAR_PLAYLISTS_FILE, DATA_DIR)
 from src.spotify.utils import read_pickle
@@ -151,9 +150,7 @@ def create_song_pair_features(df_triplets_examples: pd.DataFrame):
     # Random shuffle
     df_examples = df_pairs_examples.sample(frac=1)
 
-    audio_features = df[EUCLIDEAN_FEAT_COLS].values
-    genre_embedding = np.vstack(df[EVERYNOISE_FEAT_COL].values.tolist())
-    features = np.hstack((audio_features, genre_embedding))
+    features = df[CATBOOST_FEATURES].values
     # Fillna for missing genre embeddings
     df_features = pd.DataFrame(
         features, index=df.index, columns=CATBOOST_FEATURES

@@ -88,10 +88,6 @@ def get_catboost_predictions(
     -------
 
     """
-    # TODO: add genre_{x,y} already in MAIN_DATA_FILE
-    for df in [df_playlist_features, df_songs_available_for_suggestion_features]:
-        df["genre_x"] = df["GenreEveryNoiseEmbedding"].apply(lambda x: x[0])
-        df["genre_y"] = df["GenreEveryNoiseEmbedding"].apply(lambda x: x[1])
     df_inference = create_inference_data(
         df_playlist_features[CATBOOST_FEATURES],
         df_songs_available_for_suggestion_features[CATBOOST_FEATURES],
