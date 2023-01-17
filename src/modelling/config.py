@@ -15,6 +15,8 @@ EUCLIDEAN_FEAT_COLS = [
     "loudness",
     # Spotify song metadata
     "AlbumReleaseYear",
+    "GenreEveryNoiseEmbeddingX",
+    "GenreEveryNoiseEmbeddingY"
 ]
 
 EVERYNOISE_FEAT_COL = "GenreEveryNoiseEmbedding"
