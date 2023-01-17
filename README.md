@@ -7,9 +7,7 @@ the app suggests songs from the user's liked songs that may make a good addition
 The current goal of this app is to provide recommendations solely using information from a user's library.
 Thus, methods like collaborative filtering are outside of the current scope.
 
-A brief overview of the entire project can be found in these [presentation slides](resources/presentation/Presentation.pdf).
-
-Specifically, under the current scope, song suggestions are based on a trained Catboost model that uses
+Specifically, under the current scope, song suggestions are based on a trained Catboost model (for more information refer to [the model section](#model)) that uses
 audio features, song attributes and genre information in the form of embeddings provided by [Every Noise at Once](https://everynoise.com/).
 The audio features used by the app are a subset of those provided by [Spotify's API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features) 
 in addition to the year of the song's album release. All features used are listed [here](#audio_features).
@@ -124,7 +122,7 @@ In addition, metadata on songs are considered. Specifically, the 10th audio attr
 
 All these features are cast to a range of [0, 1] if they are not already.
 
-## 2. Model
+## 2. [Model](#model)
 
 To measure the similarity between two songs, a `Catboost` model is trained through contrastive learning.
 Positive song pairs are generated based on their occurrence in the same playlist.
