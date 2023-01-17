@@ -12,7 +12,7 @@ from src.spotify.config import (MAIN_DATA_FILE, PLAYLIST_FILE,
 from src.spotify.utils import read_pickle
 
 
-def create_song_triplets() -> pd.DataFrame:
+def create_song_triplets(verbose=0) -> pd.DataFrame:
     """
     Create dataframe holding triplets of songs in addition to the playlist context.
 
@@ -75,7 +75,8 @@ def create_song_triplets() -> pd.DataFrame:
     pos_examples = np.concatenate(
         (pos_examples, switched_pos_examples, addtl_pos_examples)
     )
-    print(f"Positive examples: {pos_examples.shape[0]:,}")
+    if verbose >= 1:
+        print(f"Positive examples: {pos_examples.shape[0]:,}")
 
     # ========================
     # Create negative examples
@@ -108,7 +109,9 @@ def create_song_triplets() -> pd.DataFrame:
             playlists[different_playlist]["tracks"]
         )
         neg_examples[i] = negative_example_song
-    print(f"Negative examples: {neg_examples.shape[0]:,}")
+
+    if verbose >= 1:
+        print(f"Negative examples: {neg_examples.shape[0]:,}")
 
     # =========================================================
     # Combine positive and negative examples into one dataframe
@@ -211,7 +214,7 @@ def create_graph(df: pd.DataFrame, playlists: dict) -> nx.classes.graph.Graph:
     )
 
     # Get all nodes in the graph
-    nodes = set(edges.song_1).union(set(edges.song_2))
+    nodes = set(edges.song_1) & (set(edges.song_2))
     # There should be as many nodes as songs in our feature dataset
     assert len(nodes - set(df.index)) == 0
 
@@ -220,8 +223,6 @@ def create_graph(df: pd.DataFrame, playlists: dict) -> nx.classes.graph.Graph:
     graph = nx.from_pandas_edgelist(
         edges, source="song_1", target="song_2", edge_attr="playlist"
     )
-    print(f"Number of nodes: {len(graph.nodes):,}")
-    print(f"Number of edges: {len(graph.edges):,}")
 
     # Node attribute is the list of playlist the song featured in
     node_attributes = (
