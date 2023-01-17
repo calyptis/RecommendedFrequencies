@@ -82,12 +82,23 @@ def merge_data():
     )
     data = features_df.join(tmp, how="left")
     data.missing_everynoise_genre.fillna(True, inplace=True)
+    # If genre information is missing, set the embedding to the null vector
+    data["GenreEveryNoiseEmbedding"] = (
+        data
+        .GenreEveryNoiseEmbedding
+        .apply(lambda x: [0, 0] if x is np.nan or np.isnan(x).sum() == 2 else x)
+    )
 
-    # In case of collaborations, only care about the fact that the single occurrence of a given genre
+    # Get one column for each dimension in EveryNoise embedding
+    data["GenreEveryNoiseEmbeddingX"] = data["GenreEveryNoiseEmbedding"].apply(lambda x: x[0])
+    data["GenreEveryNoiseEmbeddingY"] = data["GenreEveryNoiseEmbedding"].apply(lambda x: x[1])
+    data.drop(columns=["GenreEveryNoiseEmbedding"], inplace=True)
+
+    # In case of collaborations, only care about unique occurrences of genres
     data["GenreSet"] = data.GenreList.apply(lambda x: set(x) if isinstance(x, list) else {})
 
     # Normalize features that are not yet normalized
-    cols_to_scale = ["tempo", "loudness", "AlbumReleaseYear"]
+    cols_to_scale = ["tempo", "loudness", "AlbumReleaseYear", "GenreEveryNoiseEmbeddingX", "GenreEveryNoiseEmbeddingY"]
     for c in cols_to_scale:
         data[c] = MinMaxScaler().fit_transform(data[c].values.reshape(-1, 1))
 
@@ -107,13 +118,11 @@ def merge_data():
     data.drop_duplicates(subset=["SongName", "Artist"], inplace=True)
 
     # For some artists, no genre info is available, e.g. John Newman "34v5MVKeQnIo0CWYMbbrPf"
-    # For now, affected songs are removed
+    # remove these songs
     # data = data.query("~missing_everynoise_genre")
-    # For now set their genre centroid to (0, 0)
-    data["GenreEveryNoiseEmbedding"] = (
-        data
-        .GenreEveryNoiseEmbedding
-        .apply(lambda x: [0, 0] if x is np.nan or np.isnan(x).sum() == 2 else x)
-    )
 
     data.to_pickle(MAIN_DATA_FILE)
+
+
+if __name__ == '__main__':
+    merge_data()
