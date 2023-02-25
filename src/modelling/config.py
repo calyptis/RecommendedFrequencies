@@ -1,6 +1,6 @@
 import os
-from src.project_config import DATA_DIR, MODEL_DIR
 
+from src.project_config import DATA_DIR, MODEL_DIR
 
 EUCLIDEAN_FEAT_COLS = [
     # Spotify audio features
@@ -14,14 +14,14 @@ EUCLIDEAN_FEAT_COLS = [
     "tempo",
     "loudness",
     # Spotify song metadata
-    "AlbumReleaseYear"
+    "AlbumReleaseYear",
+    "GenreEveryNoiseEmbeddingX",
+    "GenreEveryNoiseEmbeddingY"
 ]
 
 EVERYNOISE_FEAT_COL = "GenreEveryNoiseEmbedding"
 
-GENRE_COL = "GenreList"
-
-CATBOOST_FEATURES = EUCLIDEAN_FEAT_COLS + ["genre_x", "genre_y"]
+CATBOOST_FEATURES = EUCLIDEAN_FEAT_COLS
 
 ML_DATA_FILE = os.path.join(DATA_DIR, "ml_data.csv")
 

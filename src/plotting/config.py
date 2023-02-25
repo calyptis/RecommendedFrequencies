@@ -8,7 +8,18 @@ RADIAL_COLS = [
     "valence",
     "tempo",
     "loudness",
-    "AlbumReleaseYear"
+    "AlbumReleaseYear",
+    "GenreEveryNoiseEmbeddingX",
+    "GenreEveryNoiseEmbeddingY"
 ]
 
-RADIAL_COLS_PRETTY = [i.capitalize() if i != "AlbumReleaseYear" else "Year of Album Release" for i in RADIAL_COLS]
+D_MAPPING = {
+    "AlbumReleaseYear": "Year of Album Release",
+    "GenreEveryNoiseEmbeddingX": "Genre Emb x-dim",
+    "GenreEveryNoiseEmbeddingY": "Genre Emb y-dim"
+}
+
+RADIAL_COLS_PRETTY = [
+    D_MAPPING.get(i, i.capitalize())
+    for i in RADIAL_COLS
+]
