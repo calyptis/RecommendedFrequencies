@@ -126,7 +126,7 @@ All these features are cast to a range of [0, 1] if they are not already.
 
 ## 2. [Model](#model)
 
-To measure the similarity between two songs, a `Catboost` model is trained through contrastive learning.
+To measure the similarity between two songs, a `Catboost` model is trained.
 Positive song pairs are generated based on their occurrence in the same playlist.
 Negative song pairs are generated based on user specified pairs of playlists that are very different.
 
