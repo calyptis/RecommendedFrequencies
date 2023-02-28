@@ -1,6 +1,6 @@
 # Recommended Frequencies
 
-[**Presentation material**](resources/presentation/Presentation.pdf)
+[**Slide deck**](resources/presentation/Presentation.pdf) | [**Blog post**](resources/html/Blog_Post.html)
 
 # Introduction
 «Recommended Frequencies» is a recommendation engine for playlists and currently works for Spotify.
