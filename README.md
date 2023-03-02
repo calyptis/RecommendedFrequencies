@@ -1,3 +1,7 @@
+---
+permalink: /index.html
+---
+
 # Recommended Frequencies
 
 [**Slide deck**](resources/presentation/Presentation.pdf) | [**Blog post**](resources/html/Blog_Post.html)
