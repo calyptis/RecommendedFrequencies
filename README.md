@@ -1,7 +1,3 @@
----
-permalink: /index.html
----
-
 # Recommended Frequencies
 
 [**Slide deck**](resources/presentation/Presentation.pdf) | [**Blog post**](https://calyptis.github.io/RecommendedFrequencies/)
