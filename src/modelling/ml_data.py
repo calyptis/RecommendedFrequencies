@@ -9,6 +9,7 @@ from src.modelling.config import (CATBOOST_FEATURES)
 from src.spotify.config import (MAIN_DATA_FILE, PLAYLIST_FILE,
                                 SIMILAR_PLAYLISTS_FILE, DATA_DIR)
 from src.spotify.utils import read_pickle
+from src.streamlit.utils import FILE_POSITIVE_TRAINING_EXAMPLES
 
 
 def create_song_triplets(verbose=0) -> pd.DataFrame:
@@ -48,6 +49,26 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
         for playlist in list_playlists
         if playlist["name"][0] not in exclude_playlists
     }
+
+    # ===============================================================
+    # Adding positive examples that were selected in the streamlit app
+    # This is useful because users then do not have to manually add the song to the Spotify library
+    # and re-run the scripts to update the data files (again making API calls)
+    # This way we simulate that the songs exist in the playlist
+    df_additional_positive_training_examples = (
+        pd.read_csv(FILE_POSITIVE_TRAINING_EXAMPLES)
+        .drop_duplicates()
+    )
+    # Some house-keeping
+    df_additional_positive_training_examples.to_csv(FILE_POSITIVE_TRAINING_EXAMPLES, index=False)
+    df_additional_positive_training_examples = (
+        df_additional_positive_training_examples
+        .groupby("playlist_name")
+        ["song_id"]
+        .agg(list)
+    )
+    for playlist_name, additional_tracks in df_additional_positive_training_examples.iteritems():
+        playlists[playlist_name]["tracks"] += additional_tracks
 
     # ===============================================================
     # Create graph (nodes = songs, edges = if nodes in same playlist)
@@ -104,10 +125,16 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
             )
         else:
             different_playlist = np.random.choice(list(playlists.keys()))
-        negative_example_song = np.random.choice(
-            playlists[different_playlist]["tracks"]
-        )
-        neg_examples[i] = negative_example_song
+        if playlists[different_playlist]["tracks"]:
+            negative_example_song = np.random.choice(
+                playlists[different_playlist]["tracks"]
+            )
+            neg_examples[i] = negative_example_song
+        else:
+            # When this error is raised, check for peculiarities in the playlist
+            # or if one wishes to simply proceed without considering the playlist
+            # add the name of the playlist to data/exclude_playlists.txt
+            raise Exception(f"No tracks for playlist {different_playlist}")
 
     if verbose >= 1:
         print(f"Negative examples: {neg_examples.shape[0]:,}")
@@ -136,7 +163,6 @@ def create_song_pair_features(df_triplets_examples: pd.DataFrame):
     """
     # Load main data source: songs & their attributes
     df = pd.read_pickle(MAIN_DATA_FILE)
-    # df_triplets_examples = pd.read_csv(ML_DATA_FILE)
     df_pairs_examples = pd.concat(
         (
             df_triplets_examples[["anchor", "positive_example", "playlist"]]

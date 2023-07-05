@@ -26,6 +26,9 @@ def get_everynoise_embeddings() -> None:
     genres_df = pd.read_csv(GENRE_FILE)
     genre_space_df = pd.read_csv(EVERYNOISE_GENRE_SPACE).set_index("genre")
     genres_df["GenreList"] = genres_df["GenreList"].apply(eval)
+    # Only consider genres in every noise
+    everynoise_genres = set(genre_space_df.index)
+    genres_df["GenreList"] = genres_df["GenreList"].apply(lambda x: list(set(x).intersection(everynoise_genres)))
     genres_df["GenreEveryNoiseEmbedding"] = genres_df["GenreList"].apply(
         lambda x: np.nanmean(genre_space_df.loc[x].values, axis=0)
     )

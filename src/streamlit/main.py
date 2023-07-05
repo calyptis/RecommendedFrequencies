@@ -17,7 +17,11 @@ from src.plotting.mood_board import plot_mood_board, plot_radial_plot
 from src.project_config import DATA_DIR
 from src.spotify.config import ALBUM_COVER_FILE, MAIN_DATA_FILE, PLAYLIST_FILE
 from src.spotify.utils import read_pickle
-from src.streamlit.utils import make_clickable_html
+from src.streamlit.utils import (
+    make_clickable_html,
+    dataframe_with_selections,
+    FILE_POSITIVE_TRAINING_EXAMPLES
+)
 
 COL_ORDER = ["PreviewURL", "SongName", "Artist", "ID"]
 
@@ -25,9 +29,6 @@ SUGGESTION_ENGINES = {
     "Catboost": get_catboost_predictions,
 }
 
-GENRE_SIMILARITY = [
-    "everynoise",
-]
 SIMILAR_SONGS_STEPS = 10
 
 # If certain d_playlists should be excluded from the dashboard
@@ -54,7 +55,7 @@ st.set_page_config(page_title=app_title, page_icon="🎵", layout="wide")
 
 
 # --------- Data
-@st.cache
+@st.cache_data()
 def get_playlists():
     """Load playlists from disk."""
     list_playlists = read_pickle(PLAYLIST_FILE)
@@ -62,7 +63,7 @@ def get_playlists():
     return dict_playlists
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def get_features():
     """Load features from disk."""
     df_features = pd.read_pickle(MAIN_DATA_FILE)
@@ -71,7 +72,7 @@ def get_features():
     return df_features
 
 
-@st.cache
+@st.cache_data()
 def get_album_covers():
     """Load album covers from disk."""
     album_covers = read_pickle(ALBUM_COVER_FILE)
@@ -97,6 +98,7 @@ st.markdown(
 )
 controls = st.expander("Page Settings")
 include_audio_preview = controls.checkbox("Include Audio Preview", value=False)
+bool_retrain = controls.button("Retrain ML model", key="retrain_model")
 st.markdown("---")
 st.markdown("### 1. Choose a playlist")
 select_playlist = st.selectbox("", playlist_options)
@@ -166,13 +168,12 @@ if select_suggestion_engine == "Catboost":
     # TODO: Remove these variables from the script
     genre_weight = 0
     genre_similarity = None
-    if not os.path.exists(CATBOOST_MODEL_FILE):
+    if not os.path.exists(CATBOOST_MODEL_FILE) or bool_retrain:
         print("Creating song triples")
         df_example_triplets = create_song_triplets()
         print("Obtaining features for song triples")
         df_features_for_model = create_song_pair_features(df_example_triplets)
         df_train, df_test = create_train_test_split(df_features_for_model)
-        # TODO: Allow to retrain from within the streamlit app
         model_catboost = train_catboost(df_train, df_test)
         model_catboost.save_model(CATBOOST_MODEL_FILE)
     else:
@@ -193,7 +194,7 @@ top_n = controls.slider(
 
 
 # --------- Find most similar songs
-@st.cache
+@st.cache_data
 def get_results_wrapper(
     _suggestion_engine,
     _df_playlist_features,
@@ -210,7 +211,7 @@ def get_results_wrapper(
     )
 
 
-@st.cache
+@st.cache_data
 def get_top_results_wrapper(
     _select_suggestion_engine, _df_song_similarity, _top_n
 ):
@@ -276,14 +277,23 @@ if include_audio_preview:
         unsafe_allow_html=True,
     )
 else:
-    col1.dataframe(
-        (
-            df_suggested_songs_info.reset_index()
-            .iloc[start:end][COL_ORDER + ["Similarity"]]
-            .drop("PreviewURL", axis=1)
-        ),
-        # height=600
+    df_to_show = (
+        df_suggested_songs_info.reset_index()
+        .iloc[start:end][COL_ORDER + ["Similarity"]]
+        .drop("PreviewURL", axis=1)
     )
+    selection = dataframe_with_selections(col1, df_to_show)
+    # Save correct predictions to disk in order to use them
+    # as training examples when re-training the model
+    df_training_to_add = pd.DataFrame({"song_id": selection["ID"].values, "playlist_name": select_playlist})
+    bool_training_examples_exist = os.path.exists(FILE_POSITIVE_TRAINING_EXAMPLES)
+    df_training_to_add.to_csv(
+        FILE_POSITIVE_TRAINING_EXAMPLES,
+        index=False,
+        mode="a" if bool_training_examples_exist else "w",
+        header=False if bool_training_examples_exist else True
+    )
+
 col2.markdown("#### Visualise similarity of proposed song")
 # To copy list of songs into the presentation
 # df_suggested_songs_info.reset_index()[COL_ORDER].to_csv(os.path.join(DATA_DIR, "TMP_SUGGESTIONS.csv"))

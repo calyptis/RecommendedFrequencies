@@ -62,9 +62,6 @@ def pipeline(sp: spotipy.client.Spotify, overwrite: bool = False):
     # Works incrementally
     logging.info(msg=MSG.format("Download missing previews"))
     get_missing_preview_urls(sp, verbose=1)
-    if not os.path.exists(PLAYLIST_FILE) or overwrite:
-        logging.info(msg=MSG.format("Download playlists"))
-        get_playlists(sp, verbose=1)
     if not os.path.exists(EVERYNOISE_GENRE_SPACE) or overwrite:
         logging.info(msg=MSG.format("Download Every Noise At Once Genre Space"))
         download_everynoise_genre_space()
