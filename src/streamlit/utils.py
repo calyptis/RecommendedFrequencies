@@ -6,7 +6,7 @@ import streamlit as st
 from src.project_config import DATA_DIR
 
 
-FILE_POSITIVE_TRAINING_EXAMPLES = os.path.join(DATA_DIR, "collected_positive_training_examples.csv")
+FILE_ADDITIONAL_TRAINING_EXAMPLES = os.path.join(DATA_DIR, "collected_training_examples.csv")
 
 
 def make_clickable_df(val: str) -> str:
@@ -58,6 +58,7 @@ def dataframe_with_selections(st_element: st.elements, df: pd.DataFrame) -> pd.D
 
     Parameters
     ----------
+    st_element: Streamlit element to which the dataframe should be written to (e.g., column)
     df: pd.DataFrame
         Pandas dataframe to render
 
@@ -66,7 +67,7 @@ def dataframe_with_selections(st_element: st.elements, df: pd.DataFrame) -> pd.D
     selected_rows: Dict[str, pd.DataFrame]
         Selected rows
     """
-    col_name = "Save as positive training example"
+    col_name = "Save as negative training example"
     df_with_selections = df.copy()
     df_with_selections.insert(0, col_name, False)
     edited_df = st_element.data_editor(

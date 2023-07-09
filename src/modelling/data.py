@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 
 import networkx as nx
@@ -9,7 +10,17 @@ from src.modelling.config import (CATBOOST_FEATURES)
 from src.spotify.config import (MAIN_DATA_FILE, PLAYLIST_FILE,
                                 SIMILAR_PLAYLISTS_FILE, DATA_DIR)
 from src.spotify.utils import read_pickle
-from src.streamlit.utils import FILE_POSITIVE_TRAINING_EXAMPLES
+from src.streamlit.utils import FILE_ADDITIONAL_TRAINING_EXAMPLES
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        # logging.FileHandler("debug.log"),
+        logging.StreamHandler()
+    ],
+)
 
 
 def create_song_triplets(verbose=0) -> pd.DataFrame:
@@ -51,26 +62,6 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
     }
 
     # ===============================================================
-    # Adding positive examples that were selected in the streamlit app
-    # This is useful because users then do not have to manually add the song to the Spotify library
-    # and re-run the scripts to update the data files (again making API calls)
-    # This way we simulate that the songs exist in the playlist
-    df_additional_positive_training_examples = (
-        pd.read_csv(FILE_POSITIVE_TRAINING_EXAMPLES)
-        .drop_duplicates()
-    )
-    # Some house-keeping
-    df_additional_positive_training_examples.to_csv(FILE_POSITIVE_TRAINING_EXAMPLES, index=False)
-    df_additional_positive_training_examples = (
-        df_additional_positive_training_examples
-        .groupby("playlist_name")
-        ["song_id"]
-        .agg(list)
-    )
-    for playlist_name, additional_tracks in df_additional_positive_training_examples.iteritems():
-        playlists[playlist_name]["tracks"] += additional_tracks
-
-    # ===============================================================
     # Create graph (nodes = songs, edges = if nodes in same playlist)
     graph = create_graph(df, playlists)
 
@@ -95,8 +86,7 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
     pos_examples = np.concatenate(
         (pos_examples, switched_pos_examples, addtl_pos_examples)
     )
-    if verbose >= 1:
-        print(f"Positive examples: {pos_examples.shape[0]:,}")
+    logging.info(f"Positive examples: {pos_examples.shape[0]:,}")
 
     # ========================
     # Create negative examples
@@ -136,8 +126,7 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
             # add the name of the playlist to data/exclude_playlists.txt
             raise Exception(f"No tracks for playlist {different_playlist}")
 
-    if verbose >= 1:
-        print(f"Negative examples: {neg_examples.shape[0]:,}")
+    logging.info(f"Negative examples: {neg_examples.shape[0]:,}")
 
     # =========================================================
     # Combine positive and negative examples into one dataframe
@@ -145,6 +134,29 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
         np.hstack((pos_examples[:, :2], neg_examples, pos_examples[:, -1:])),
         columns=["anchor", "positive_example", "negative_example", "playlist"],
     )
+
+    # ===============================================================
+    # Adding negative examples that were selected in the streamlit app
+    # This is useful because users can re-train the model on explicitely selected negative pairs
+    df_additional_negative_training_examples = (
+        pd.read_csv(FILE_ADDITIONAL_TRAINING_EXAMPLES)
+        .drop_duplicates()
+    )
+    # Some house-keeping (over-writing file with removed duplicates)
+    df_additional_negative_training_examples.to_csv(FILE_ADDITIONAL_TRAINING_EXAMPLES, index=False)
+    to_add = []
+    for playlist, g in df_additional_negative_training_examples.groupby("playlist_name"):
+        # For each playlist, get the number of negative examples recorded through the streamlit app
+        negative_examples = g["song_id"].values
+        # Sample as many positive examples and anchors from the pool of data points we have collected so far
+        # NOTE: anchor and positive example will occur more than once, but negative example is new
+        tmp = df_examples.query(f"playlist == '{playlist}'").sample(n=len(negative_examples))
+        tmp["negative_example"] = negative_examples
+        to_add.append(tmp)
+    df_to_add = pd.concat(to_add)
+    logging.info(f"Adding {len(df_to_add):,} additional negative examples collected as feedback from the app.")
+
+    df_examples = pd.concat((df_to_add, df_examples))
 
     return df_examples  # .to_csv(ML_DATA_FILE, index=False)
 

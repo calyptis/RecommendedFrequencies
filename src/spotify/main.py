@@ -6,12 +6,12 @@ import spotipy
 
 from src.spotify.config import (EVERYNOISE_GENRE_SPACE,
                                 GENRE_EVERYNOISE_EMBEDDING_FILE,
-                                MAIN_DATA_FILE, PLAYLIST_FILE,
+                                MAIN_DATA_FILE,
                                 PLAYLIST_GENRE_FILE, TRACK_RAW_FILE)
 from src.spotify.genre_embeddings import (download_everynoise_genre_space,
                                           get_everynoise_embeddings)
 from src.spotify.library import (get_album_covers_for_playlists, get_genres,
-                                 get_missing_preview_urls, get_playlists,
+                                 get_missing_preview_urls,
                                  get_spotipy_instance, get_track_features,
                                  get_tracks, parse_playlist_genres,
                                  parse_tracks)

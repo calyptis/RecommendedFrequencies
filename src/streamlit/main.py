@@ -6,11 +6,10 @@ import pandas as pd
 
 import streamlit as st
 from src.modelling.config import CATBOOST_MODEL_FILE, EUCLIDEAN_FEAT_COLS
-from src.modelling.ml_catboost import (create_train_test_split,
-                                       get_catboost_predictions,
-                                       train_catboost)
-from src.modelling.ml_data import (create_song_pair_features,
-                                   create_song_triplets)
+from src.modelling.catboost import (create_train_test_split,
+                                    get_catboost_predictions,
+                                    train_catboost)
+from src.modelling.data import (create_song_pair_features, create_song_triplets)
 from src.modelling.utils import get_top_results
 from src.plotting.album_cover_collage import plot_album_covers
 from src.plotting.mood_board import plot_mood_board, plot_radial_plot
@@ -20,7 +19,7 @@ from src.spotify.utils import read_pickle
 from src.streamlit.utils import (
     make_clickable_html,
     dataframe_with_selections,
-    FILE_POSITIVE_TRAINING_EXAMPLES
+    FILE_ADDITIONAL_TRAINING_EXAMPLES
 )
 
 COL_ORDER = ["PreviewURL", "SongName", "Artist", "ID"]
@@ -194,7 +193,7 @@ top_n = controls.slider(
 
 
 # --------- Find most similar songs
-@st.cache_data
+# @st.cache_data
 def get_results_wrapper(
     _suggestion_engine,
     _df_playlist_features,
@@ -211,7 +210,7 @@ def get_results_wrapper(
     )
 
 
-@st.cache_data
+# @st.cache_data
 def get_top_results_wrapper(
     _select_suggestion_engine, _df_song_similarity, _top_n
 ):
@@ -283,12 +282,12 @@ else:
         .drop("PreviewURL", axis=1)
     )
     selection = dataframe_with_selections(col1, df_to_show)
-    # Save correct predictions to disk in order to use them
+    # Save wrong predictions to disk in order to use them
     # as training examples when re-training the model
     df_training_to_add = pd.DataFrame({"song_id": selection["ID"].values, "playlist_name": select_playlist})
-    bool_training_examples_exist = os.path.exists(FILE_POSITIVE_TRAINING_EXAMPLES)
+    bool_training_examples_exist = os.path.exists(FILE_ADDITIONAL_TRAINING_EXAMPLES)
     df_training_to_add.to_csv(
-        FILE_POSITIVE_TRAINING_EXAMPLES,
+        FILE_ADDITIONAL_TRAINING_EXAMPLES,
         index=False,
         mode="a" if bool_training_examples_exist else "w",
         header=False if bool_training_examples_exist else True
