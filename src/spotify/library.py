@@ -314,6 +314,7 @@ def get_playlists(
     playlists = []
     offset = 0
     update_interval = 50
+    error_counts = 0
     while True:
         response = sp.user_playlists(user_id, limit=50, offset=offset)
         if not response:
@@ -321,8 +322,10 @@ def get_playlists(
             continue
         items = response["items"]
         if len(items) == 0:
+            error_counts += 1
+        if error_counts >= 3:
             break
-        else:
+        if len(items) > 0:
             for v in items:
                 response = _get_playlist_tracks(sp, v["id"])
                 tracks = list(map(lambda x: x[0], response))

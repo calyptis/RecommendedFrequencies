@@ -16,11 +16,8 @@ from src.plotting.mood_board import plot_mood_board, plot_radial_plot
 from src.project_config import DATA_DIR
 from src.spotify.config import ALBUM_COVER_FILE, MAIN_DATA_FILE, PLAYLIST_FILE
 from src.spotify.utils import read_pickle
-from src.streamlit.utils import (
-    make_clickable_html,
-    dataframe_with_selections,
-    FILE_ADDITIONAL_TRAINING_EXAMPLES
-)
+from src.streamlit.utils import (make_clickable_html, dataframe_with_selections)
+from src.streamlit.config import (FILE_ADDITIONAL_TRAINING_EXAMPLES, FILE_EXCLUDE_PLAYLISTS)
 
 COL_ORDER = ["PreviewURL", "SongName", "Artist", "ID"]
 
@@ -32,9 +29,8 @@ SIMILAR_SONGS_STEPS = 10
 
 # If certain d_playlists should be excluded from the dashboard
 # they need to be listed in the file below
-exclude_playlist_path = os.path.join(DATA_DIR, "exclude_playlists.txt")
-if os.path.exists(exclude_playlist_path):
-    with open(exclude_playlist_path, "r") as f:
+if os.path.exists(FILE_EXCLUDE_PLAYLISTS):
+    with open(FILE_EXCLUDE_PLAYLISTS, "r") as f:
         exclude_playlists = f.read().split("\n")
 else:
     exclude_playlists = []
@@ -169,9 +165,9 @@ if select_suggestion_engine == "Catboost":
     genre_similarity = None
     if not os.path.exists(CATBOOST_MODEL_FILE) or bool_retrain:
         print("Creating song triples")
-        df_example_triplets = create_song_triplets()
+        df_example_triples = create_song_triplets()
         print("Obtaining features for song triples")
-        df_features_for_model = create_song_pair_features(df_example_triplets)
+        df_features_for_model = create_song_pair_features(df_example_triples)
         df_train, df_test = create_train_test_split(df_features_for_model)
         model_catboost = train_catboost(df_train, df_test)
         model_catboost.save_model(CATBOOST_MODEL_FILE)

@@ -1,12 +1,5 @@
-import os
-
 import pandas as pd
 import streamlit as st
-
-from src.project_config import DATA_DIR
-
-
-FILE_ADDITIONAL_TRAINING_EXAMPLES = os.path.join(DATA_DIR, "collected_training_examples.csv")
 
 
 def make_clickable_df(val: str) -> str:

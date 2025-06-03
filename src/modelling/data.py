@@ -6,11 +6,12 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from src.modelling.config import (CATBOOST_FEATURES)
+from src.modelling.config import CATBOOST_FEATURES
 from src.spotify.config import (MAIN_DATA_FILE, PLAYLIST_FILE,
-                                SIMILAR_PLAYLISTS_FILE, DATA_DIR)
+                                SIMILAR_PLAYLISTS_FILE)
+from src.project_config import CREATED_DATA_DIR
 from src.spotify.utils import read_pickle
-from src.streamlit.utils import FILE_ADDITIONAL_TRAINING_EXAMPLES
+from src.streamlit.config import FILE_ADDITIONAL_TRAINING_EXAMPLES
 
 
 logging.basicConfig(
@@ -23,7 +24,7 @@ logging.basicConfig(
 )
 
 
-def create_song_triplets(verbose=0) -> pd.DataFrame:
+def create_song_triplets() -> pd.DataFrame:
     """
     Create dataframe holding triplets of songs in addition to the playlist context.
 
@@ -43,7 +44,7 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
     # ================================
     # Load playlists we should exclude
     # For example playlists that do not follow a structure, such as "Most Recently Added"
-    exclude_playlist_path = os.path.join(DATA_DIR, "exclude_playlists.txt")
+    exclude_playlist_path = os.path.join(CREATED_DATA_DIR, "exclude_playlists.txt")
     if os.path.exists(exclude_playlist_path):
         with open(exclude_playlist_path, "r") as f:
             exclude_playlists = f.read().split("\n")
@@ -161,13 +162,13 @@ def create_song_triplets(verbose=0) -> pd.DataFrame:
     return df_examples  # .to_csv(ML_DATA_FILE, index=False)
 
 
-def create_song_pair_features(df_triplets_examples: pd.DataFrame):
+def create_song_pair_features(df_triples_examples: pd.DataFrame):
     """
     TODO: add docstring.
 
     Parameters
     ----------
-    df_triplets_examples
+    df_triples_examples
 
     Returns
     -------
@@ -177,10 +178,10 @@ def create_song_pair_features(df_triplets_examples: pd.DataFrame):
     df = pd.read_pickle(MAIN_DATA_FILE)
     df_pairs_examples = pd.concat(
         (
-            df_triplets_examples[["anchor", "positive_example", "playlist"]]
+            df_triples_examples[["anchor", "positive_example", "playlist"]]
             .rename(columns={"positive_example": "example"})
             .assign(target=1),
-            df_triplets_examples[["anchor", "negative_example", "playlist"]]
+            df_triples_examples[["anchor", "negative_example", "playlist"]]
             .rename(columns={"negative_example": "example"})
             .assign(target=0),
         )
@@ -189,10 +190,19 @@ def create_song_pair_features(df_triplets_examples: pd.DataFrame):
     df_examples = df_pairs_examples.sample(frac=1)
 
     features = df[CATBOOST_FEATURES].values
+
     # Fillna for missing genre embeddings
     df_features = pd.DataFrame(
         features, index=df.index, columns=CATBOOST_FEATURES
     ).fillna(0)
+
+    # Ensure that we only consider examples for which we have features
+    # TODO: Figure out why it can happen that a song ID is not in df.index
+    df_examples = df_examples.loc[
+        lambda x:
+        x["anchor"].isin(df.index) &
+        x["example"].isin(df.index)
+    ].copy()
 
     df_songs_a_features = (
         df_features.loc[df_examples.anchor]
