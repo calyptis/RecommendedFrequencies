@@ -4,9 +4,13 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-from recommended_frequencies.spotify.config import (GENRE_EVERYNOISE_EMBEDDING_FILE,
-                                                    MAIN_DATA_FILE, PREVIEW_FILE, TRACK_FEAT_FILE,
-                                                    TRACK_PARSED_FILE)
+from recommended_frequencies.spotify.config import (
+    GENRE_EVERYNOISE_EMBEDDING_FILE,
+    MAIN_DATA_FILE,
+    PREVIEW_FILE,
+    TRACK_FEAT_FILE,
+    TRACK_PARSED_FILE,
+)
 
 
 def merge_data():
@@ -83,22 +87,32 @@ def merge_data():
     data = features_df.join(tmp, how="left")
     data.missing_everynoise_genre.fillna(True, inplace=True)
     # If genre information is missing, set the embedding to the null vector
-    data["GenreEveryNoiseEmbedding"] = (
-        data
-        .GenreEveryNoiseEmbedding
-        .apply(lambda x: [0, 0] if x is np.nan or np.isnan(x).sum() == 2 else x)
+    data["GenreEveryNoiseEmbedding"] = data.GenreEveryNoiseEmbedding.apply(
+        lambda x: [0, 0] if x is np.nan or np.isnan(x).sum() == 2 else x
     )
 
     # Get one column for each dimension in EveryNoise embedding
-    data["GenreEveryNoiseEmbeddingX"] = data["GenreEveryNoiseEmbedding"].apply(lambda x: x[0])
-    data["GenreEveryNoiseEmbeddingY"] = data["GenreEveryNoiseEmbedding"].apply(lambda x: x[1])
+    data["GenreEveryNoiseEmbeddingX"] = data["GenreEveryNoiseEmbedding"].apply(
+        lambda x: x[0]
+    )
+    data["GenreEveryNoiseEmbeddingY"] = data["GenreEveryNoiseEmbedding"].apply(
+        lambda x: x[1]
+    )
     data.drop(columns=["GenreEveryNoiseEmbedding"], inplace=True)
 
     # In case of collaborations, only care about unique occurrences of genres
-    data["GenreSet"] = data.GenreList.apply(lambda x: set(x) if isinstance(x, list) else {})
+    data["GenreSet"] = data.GenreList.apply(
+        lambda x: set(x) if isinstance(x, list) else {}
+    )
 
     # Normalize features that are not yet normalized
-    cols_to_scale = ["tempo", "loudness", "AlbumReleaseYear", "GenreEveryNoiseEmbeddingX", "GenreEveryNoiseEmbeddingY"]
+    cols_to_scale = [
+        "tempo",
+        "loudness",
+        "AlbumReleaseYear",
+        "GenreEveryNoiseEmbeddingX",
+        "GenreEveryNoiseEmbeddingY",
+    ]
     for c in cols_to_scale:
         data[c] = MinMaxScaler().fit_transform(data[c].values.reshape(-1, 1))
 
@@ -124,5 +138,5 @@ def merge_data():
     data.to_pickle(MAIN_DATA_FILE)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     merge_data()

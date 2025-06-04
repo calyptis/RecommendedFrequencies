@@ -10,16 +10,13 @@ RADIAL_COLS = [
     "loudness",
     "AlbumReleaseYear",
     "GenreEveryNoiseEmbeddingX",
-    "GenreEveryNoiseEmbeddingY"
+    "GenreEveryNoiseEmbeddingY",
 ]
 
 D_MAPPING = {
     "AlbumReleaseYear": "Year of Album Release",
     "GenreEveryNoiseEmbeddingX": "Genre Emb x-dim",
-    "GenreEveryNoiseEmbeddingY": "Genre Emb y-dim"
+    "GenreEveryNoiseEmbeddingY": "Genre Emb y-dim",
 }
 
-RADIAL_COLS_PRETTY = [
-    D_MAPPING.get(i, i.capitalize())
-    for i in RADIAL_COLS
-]
+RADIAL_COLS_PRETTY = [D_MAPPING.get(i, i.capitalize()) for i in RADIAL_COLS]

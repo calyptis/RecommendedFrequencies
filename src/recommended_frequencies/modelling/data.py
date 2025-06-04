@@ -10,7 +10,7 @@ from recommended_frequencies.modelling.config import CATBOOST_FEATURES
 from recommended_frequencies.spotify.config import (
     MAIN_DATA_FILE,
     PLAYLIST_FILE,
-    SIMILAR_PLAYLISTS_FILE
+    SIMILAR_PLAYLISTS_FILE,
 )
 from recommended_frequencies.config import CREATED_DATA_DIR
 from recommended_frequencies.spotify.utils import read_pickle
@@ -144,23 +144,30 @@ def create_song_triplets() -> pd.DataFrame:
     # ===============================================================
     # Adding negative examples that were selected in the streamlit app
     # This is useful because users can re-train the model on explicitely selected negative pairs
-    df_additional_negative_training_examples = (
-        pd.read_csv(FILE_ADDITIONAL_TRAINING_EXAMPLES)
-        .drop_duplicates()
-    )
+    df_additional_negative_training_examples = pd.read_csv(
+        FILE_ADDITIONAL_TRAINING_EXAMPLES
+    ).drop_duplicates()
     # Some house-keeping (over-writing file with removed duplicates)
-    df_additional_negative_training_examples.to_csv(FILE_ADDITIONAL_TRAINING_EXAMPLES, index=False)
+    df_additional_negative_training_examples.to_csv(
+        FILE_ADDITIONAL_TRAINING_EXAMPLES, index=False
+    )
     to_add = []
-    for playlist, g in df_additional_negative_training_examples.groupby("playlist_name"):
+    for playlist, g in df_additional_negative_training_examples.groupby(
+        "playlist_name"
+    ):
         # For each playlist, get the number of negative examples recorded through the streamlit app
         negative_examples = g["song_id"].values
         # Sample as many positive examples and anchors from the pool of data points we have collected so far
         # NOTE: anchor and positive example will occur more than once, but negative example is new
-        tmp = df_examples.query(f"playlist == '{playlist}'").sample(n=len(negative_examples))
+        tmp = df_examples.query(f"playlist == '{playlist}'").sample(
+            n=len(negative_examples)
+        )
         tmp["negative_example"] = negative_examples
         to_add.append(tmp)
     df_to_add = pd.concat(to_add)
-    logging.info(f"Adding {len(df_to_add):,} additional negative examples collected as feedback from the app.")
+    logging.info(
+        f"Adding {len(df_to_add):,} additional negative examples collected as feedback from the app."
+    )
 
     df_examples = pd.concat((df_to_add, df_examples))
 
@@ -204,9 +211,7 @@ def create_song_pair_features(df_triples_examples: pd.DataFrame):
     # Ensure that we only consider examples for which we have features
     # TODO: Figure out why it can happen that a song ID is not in df.index
     df_examples = df_examples.loc[
-        lambda x:
-        x["anchor"].isin(df.index) &
-        x["example"].isin(df.index)
+        lambda x: x["anchor"].isin(df.index) & x["example"].isin(df.index)
     ].copy()
 
     df_songs_a_features = (

@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from recommended_frequencies.spotify.config import (
     EVERYNOISE_GENRE_SPACE,
     GENRE_EVERYNOISE_EMBEDDING_FILE,
-    GENRE_FILE
+    GENRE_FILE,
 )
 
 
@@ -32,7 +32,9 @@ def get_everynoise_embeddings() -> None:
     genres_df["GenreList"] = genres_df["GenreList"].apply(eval)
     # Only consider genres in every noise
     everynoise_genres = set(genre_space_df.index)
-    genres_df["GenreList"] = genres_df["GenreList"].apply(lambda x: list(set(x).intersection(everynoise_genres)))
+    genres_df["GenreList"] = genres_df["GenreList"].apply(
+        lambda x: list(set(x).intersection(everynoise_genres))
+    )
     genres_df["GenreEveryNoiseEmbedding"] = genres_df["GenreList"].apply(
         lambda x: np.nanmean(genre_space_df.loc[x].values, axis=0)
     )

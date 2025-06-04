@@ -42,8 +42,8 @@ def make_clickable_html(val: str, version: int = 2) -> str:
     </audio>
     """
     v2 = """
-    <iframe 
-        src="{}" width="80" height="30" frameborder="0" allowtransparency="true" allow="encrypted-media"> 
+    <iframe
+        src="{}" width="80" height="30" frameborder="0" allowtransparency="true" allow="encrypted-media">
     </iframe>
     """
     versions = {1: v1, 2: v2}
@@ -51,7 +51,9 @@ def make_clickable_html(val: str, version: int = 2) -> str:
     return html_tag
 
 
-def dataframe_with_selections(st_element: st.elements, df: pd.DataFrame) -> pd.DataFrame:
+def dataframe_with_selections(
+    st_element: st.elements, df: pd.DataFrame
+) -> pd.DataFrame:
     """
     Adds a column to a dataframe when rendering it via streamlit.
 

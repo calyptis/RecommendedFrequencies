@@ -5,21 +5,40 @@ import catboost
 import pandas as pd
 
 import streamlit as st
-from recommended_frequencies.modelling.config import CATBOOST_MODEL_FILE, EUCLIDEAN_FEAT_COLS
+from recommended_frequencies.modelling.config import (
+    CATBOOST_MODEL_FILE,
+    EUCLIDEAN_FEAT_COLS,
+)
 from recommended_frequencies.modelling.catboost import (
     create_train_test_split,
     get_catboost_predictions,
-    train_catboost
+    train_catboost,
 )
-from recommended_frequencies.modelling.data import (create_song_pair_features, create_song_triplets)
+from recommended_frequencies.modelling.data import (
+    create_song_pair_features,
+    create_song_triplets,
+)
 from recommended_frequencies.modelling.utils import get_top_results
 from recommended_frequencies.plotting.album_cover_collage import plot_album_covers
-from recommended_frequencies.plotting.mood_board import plot_mood_board, plot_radial_plot
+from recommended_frequencies.plotting.mood_board import (
+    plot_mood_board,
+    plot_radial_plot,
+)
 from recommended_frequencies.config import DATA_DIR
-from recommended_frequencies.spotify.config import ALBUM_COVER_FILE, MAIN_DATA_FILE, PLAYLIST_FILE
+from recommended_frequencies.spotify.config import (
+    ALBUM_COVER_FILE,
+    MAIN_DATA_FILE,
+    PLAYLIST_FILE,
+)
 from recommended_frequencies.spotify.utils import read_pickle
-from recommended_frequencies.streamlit.utils import (make_clickable_html, dataframe_with_selections)
-from recommended_frequencies.streamlit.config import (FILE_ADDITIONAL_TRAINING_EXAMPLES, FILE_EXCLUDE_PLAYLISTS)
+from recommended_frequencies.streamlit.utils import (
+    make_clickable_html,
+    dataframe_with_selections,
+)
+from recommended_frequencies.streamlit.config import (
+    FILE_ADDITIONAL_TRAINING_EXAMPLES,
+    FILE_EXCLUDE_PLAYLISTS,
+)
 
 COL_ORDER = ["PreviewURL", "SongName", "Artist", "ID"]
 
@@ -209,21 +228,20 @@ def get_results_wrapper(
 
 
 # @st.cache_data
-def get_top_results_wrapper(
-    _select_suggestion_engine, _df_song_similarity, _top_n
-):
+def get_top_results_wrapper(_select_suggestion_engine, _df_song_similarity, _top_n):
     """Wrap get_top_results into a function in order to use st.cache()."""
     if _select_suggestion_engine == "Catboost":
         return _df_song_similarity.head(top_n)
     else:
-        return get_top_results(
-            df_results=_df_song_similarity, n=_top_n
-        )
+        return get_top_results(df_results=_df_song_similarity, n=_top_n)
 
 
 songs_available_for_suggestion = list(all_songs_with_features - set(playlist_tracks))
 print(f"Number of songs considered by the app: ", len(all_songs_with_features))
-print("Number of songs available for suggestion given the chosen playlist: ", len(songs_available_for_suggestion))
+print(
+    "Number of songs available for suggestion given the chosen playlist: ",
+    len(songs_available_for_suggestion),
+)
 df_songs_available_for_suggestion_features = df_features.loc[
     songs_available_for_suggestion
 ].copy()
@@ -282,13 +300,15 @@ else:
     selection = dataframe_with_selections(col1, df_to_show)
     # Save wrong predictions to disk in order to use them
     # as training examples when re-training the model
-    df_training_to_add = pd.DataFrame({"song_id": selection["ID"].values, "playlist_name": select_playlist})
+    df_training_to_add = pd.DataFrame(
+        {"song_id": selection["ID"].values, "playlist_name": select_playlist}
+    )
     bool_training_examples_exist = os.path.exists(FILE_ADDITIONAL_TRAINING_EXAMPLES)
     df_training_to_add.to_csv(
         FILE_ADDITIONAL_TRAINING_EXAMPLES,
         index=False,
         mode="a" if bool_training_examples_exist else "w",
-        header=False if bool_training_examples_exist else True
+        header=False if bool_training_examples_exist else True,
     )
 
 col2.markdown("#### Visualise similarity of proposed song")

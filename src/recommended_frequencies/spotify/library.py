@@ -21,7 +21,7 @@ from recommended_frequencies.spotify.config import (
     PREVIEW_FILE,
     TRACK_FEAT_FILE,
     TRACK_PARSED_FILE,
-    TRACK_RAW_FILE
+    TRACK_RAW_FILE,
 )
 from recommended_frequencies.spotify.utils import read_pickle, string_similarity
 
@@ -75,7 +75,6 @@ def get_tracks(sp: spotipy.client.Spotify, verbose: int = 0):
         # Saved tracks == liked songs
         library_extract = sp.current_user_saved_tracks(limit=limit, offset=offset)
         if not library_extract:
-
             continue
         if len(library_extract["items"]) == 0:
             # Already queried all tracks in the library
@@ -88,7 +87,9 @@ def get_tracks(sp: spotipy.client.Spotify, verbose: int = 0):
             if verbose >= 1:
                 logging.info(f"Downloaded {offset} tracks")
             pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
-            time.sleep(0.5)  # Make sure not too many API calls are made in a short amount of time
+            time.sleep(
+                0.5
+            )  # Make sure not too many API calls are made in a short amount of time
             results = []
     pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
 
@@ -426,7 +427,9 @@ def get_album_covers_for_playlists(verbose: int = 0) -> None:
         )
         if playlist_tracks:
             # Only sample tracks without missing url
-            playlist_tracks = data.loc[playlist_tracks].dropna(subset=["AlbumCover"]).index.tolist()
+            playlist_tracks = (
+                data.loc[playlist_tracks].dropna(subset=["AlbumCover"]).index.tolist()
+            )
             flag = len(playlist_tracks) < 10
             playlist_tracks_sample = list(
                 np.random.choice(playlist_tracks, size=10, replace=flag)

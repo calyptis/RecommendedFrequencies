@@ -1,6 +1,10 @@
 import os
 
-from recommended_frequencies.config import RAW_DATA_DIR, PREPARED_DATA_DIR, CREATED_DATA_DIR
+from recommended_frequencies.config import (
+    RAW_DATA_DIR,
+    PREPARED_DATA_DIR,
+    CREATED_DATA_DIR,
+)
 
 
 # Files
