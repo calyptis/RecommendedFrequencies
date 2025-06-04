@@ -22,7 +22,8 @@ def plot_album_covers(
 
     Returns
     -------
-    fig : matplotlib figure
+    fig : plt.Figure :
+        The figure object.
     """
     if kind == "row":
         n = len(album_cover_list)

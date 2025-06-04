@@ -5,19 +5,21 @@ import catboost
 import pandas as pd
 
 import streamlit as st
-from src.modelling.config import CATBOOST_MODEL_FILE, EUCLIDEAN_FEAT_COLS
-from src.modelling.catboost import (create_train_test_split,
-                                    get_catboost_predictions,
-                                    train_catboost)
-from src.modelling.data import (create_song_pair_features, create_song_triplets)
-from src.modelling.utils import get_top_results
-from src.plotting.album_cover_collage import plot_album_covers
-from src.plotting.mood_board import plot_mood_board, plot_radial_plot
-from src.project_config import DATA_DIR
-from src.spotify.config import ALBUM_COVER_FILE, MAIN_DATA_FILE, PLAYLIST_FILE
-from src.spotify.utils import read_pickle
-from src.streamlit.utils import (make_clickable_html, dataframe_with_selections)
-from src.streamlit.config import (FILE_ADDITIONAL_TRAINING_EXAMPLES, FILE_EXCLUDE_PLAYLISTS)
+from recommended_frequencies.modelling.config import CATBOOST_MODEL_FILE, EUCLIDEAN_FEAT_COLS
+from recommended_frequencies.modelling.catboost import (
+    create_train_test_split,
+    get_catboost_predictions,
+    train_catboost
+)
+from recommended_frequencies.modelling.data import (create_song_pair_features, create_song_triplets)
+from recommended_frequencies.modelling.utils import get_top_results
+from recommended_frequencies.plotting.album_cover_collage import plot_album_covers
+from recommended_frequencies.plotting.mood_board import plot_mood_board, plot_radial_plot
+from recommended_frequencies.config import DATA_DIR
+from recommended_frequencies.spotify.config import ALBUM_COVER_FILE, MAIN_DATA_FILE, PLAYLIST_FILE
+from recommended_frequencies.spotify.utils import read_pickle
+from recommended_frequencies.streamlit.utils import (make_clickable_html, dataframe_with_selections)
+from recommended_frequencies.streamlit.config import (FILE_ADDITIONAL_TRAINING_EXAMPLES, FILE_EXCLUDE_PLAYLISTS)
 
 COL_ORDER = ["PreviewURL", "SongName", "Artist", "ID"]
 
@@ -146,7 +148,7 @@ try:
     collage.savefig(
         buf, format="png", bbox_inches="tight", transparent=True, dpi=3 * collage.dpi
     )
-    st.image(buf, use_column_width=True)
+    st.image(buf, use_container_width=True)
 except KeyError:
     pass
 

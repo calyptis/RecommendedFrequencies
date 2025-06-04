@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from src.plotting.config import RADIAL_COLS, RADIAL_COLS_PRETTY
+from recommended_frequencies.plotting.config import RADIAL_COLS, RADIAL_COLS_PRETTY
 
 
 def plot_radial_plot(
@@ -13,7 +13,7 @@ def plot_radial_plot(
     title: str,
     inline: bool = False,
     only_return_trace: bool = False,
-) -> Union[go.Figure, go.Scatterpolar]:
+) -> Union[go.Figure, go.Scatterpolar, None]:
     """
     Plot radial plot of a specified song.
 
@@ -31,7 +31,8 @@ def plot_radial_plot(
 
     Returns
     -------
-    Plotly figure or trace
+    fig : plt.Figure :
+        The figure object.
     """
     fig = make_subplots(rows=1, cols=1, specs=[[{"type": "polar"}]], column_widths=[1])
 
@@ -68,7 +69,7 @@ def plot_mood_board(
     title: str,
     inline: bool = False,
     metrics_version: int = 1,
-) -> go.Figure:
+) -> go.Figure | None:
     """
     Plot a radial plot that summarises the characteristics of a playlist.
 
@@ -87,7 +88,8 @@ def plot_mood_board(
 
     Returns
     -------
-    Plotly figure
+    fig : plotly.graph_objects.Figure :
+        The figure object.
     """
     # TODO: Add custom trace for +/- std around mean (e.g. area symbol)
     if metrics_version == 1:

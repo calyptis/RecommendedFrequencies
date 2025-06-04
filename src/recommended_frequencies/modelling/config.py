@@ -1,6 +1,6 @@
 import os
 
-from src.project_config import MODEL_DIR, PREPARED_DATA_DIR
+from recommended_frequencies.config import MODEL_DIR, PREPARED_DATA_DIR
 
 EUCLIDEAN_FEAT_COLS = [
     # Spotify audio features

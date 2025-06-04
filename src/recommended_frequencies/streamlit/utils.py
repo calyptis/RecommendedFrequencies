@@ -4,17 +4,20 @@ import streamlit as st
 
 def make_clickable_df(val: str) -> str:
     """
-    Wrap value into an HTML tag in order to allow the value to be clickable if rendered as HTML.
+    Wrap value into an HTML tag in order to allow the value to be clickable if dataframe is rendered as HTML.
 
     Parameters
     ----------
-    val
+    val: str :
+        String to be wrapped into an HTML tag.
 
     Returns
     -------
-
+    html_tag : str :
+        HTML tag that allows val to be clickable.
     """
-    return '<a target="_blank" href="{}">{}</a>'.format(val, "preview")
+    html_tag = '<a target="_blank" href="{}">{}</a>'.format(val, "preview")
+    return html_tag
 
 
 def make_clickable_html(val: str, version: int = 2) -> str:
@@ -23,11 +26,15 @@ def make_clickable_html(val: str, version: int = 2) -> str:
 
     Parameters
     ----------
-    val
-    version
+    val: str :
+        The string to be wrapped into an HTML tag.
+    version : int :
+        The version of the audio HTML tag. Either 1 or 2.
 
     Returns
     -------
+    html_tag : str :
+        The HTML tag that allows audio to be played.
     """
     v1 = """
     <audio controls="controls">
@@ -40,7 +47,8 @@ def make_clickable_html(val: str, version: int = 2) -> str:
     </iframe>
     """
     versions = {1: v1, 2: v2}
-    return versions[version].format(val)
+    html_tag = versions[version].format(val)
+    return html_tag
 
 
 def dataframe_with_selections(st_element: st.elements, df: pd.DataFrame) -> pd.DataFrame:
@@ -51,13 +59,14 @@ def dataframe_with_selections(st_element: st.elements, df: pd.DataFrame) -> pd.D
 
     Parameters
     ----------
-    st_element: Streamlit element to which the dataframe should be written to (e.g., column)
-    df: pd.DataFrame
+    st_element: st.elements :
+        Streamlit element to which the dataframe should be written to (e.g., column)
+    df: pd.DataFrame :
         Pandas dataframe to render
 
     Returns
     -------
-    selected_rows: Dict[str, pd.DataFrame]
+    selected_rows: Dict[str, pd.DataFrame] :
         Selected rows
     """
     col_name = "Save as negative training example"

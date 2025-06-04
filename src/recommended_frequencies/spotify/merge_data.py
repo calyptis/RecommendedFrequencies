@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-from src.spotify.config import (GENRE_EVERYNOISE_EMBEDDING_FILE,
-                                MAIN_DATA_FILE, PREVIEW_FILE, TRACK_FEAT_FILE,
-                                TRACK_PARSED_FILE)
+from recommended_frequencies.spotify.config import (GENRE_EVERYNOISE_EMBEDDING_FILE,
+                                                    MAIN_DATA_FILE, PREVIEW_FILE, TRACK_FEAT_FILE,
+                                                    TRACK_PARSED_FILE)
 
 
 def merge_data():

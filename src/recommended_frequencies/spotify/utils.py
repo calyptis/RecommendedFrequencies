@@ -1,9 +1,10 @@
 import pickle
 from difflib import SequenceMatcher
+from typing import Any, Iterator
 
 import pandas as pd
 
-from src.spotify.config import MAIN_DATA_FILE
+from recommended_frequencies.spotify.config import MAIN_DATA_FILE
 
 
 def clean_string(x: str):
@@ -14,11 +15,13 @@ def clean_string(x: str):
 
     Parameters
     ----------
-    x : str
+    x : str :
         String to be cleaned
 
     Returns
     -------
+    x : str :
+        Cleaned string.
     """
     return x.lower().strip()
 
@@ -34,11 +37,14 @@ def string_similarity(string_a: str, string_b: str):
 
     Returns
     -------
+    string_sim: float :
+        Similarity between two strings [0, 1].
     """
-    return SequenceMatcher(None, string_a, string_b).ratio()
+    string_sim = SequenceMatcher(None, string_a, string_b).ratio()
+    return string_sim
 
 
-def get_chunks(original_list: list, n: int):
+def get_chunks(original_list: list[Any], n: int) -> Iterator[Any]:
     """
     Yield successive n-sized chunks from list.
 
@@ -48,25 +54,24 @@ def get_chunks(original_list: list, n: int):
         Original list to be split into chunks
     n : int
         Number of items in chunk
-
-    Returns
-    -------
     """
     for i in range(0, len(original_list), n):
         yield original_list[i : i + n]
 
 
-def read_pickle(path_to_file):
+def read_pickle(path_to_file: str) -> list[Any]:
     """
-    TODO: add docstring.
+    Sequentially read a pickle file.
 
     Parameters
     ----------
-    path_to_file
+    path_to_file: str :
+        Path to the pickle file.
 
     Returns
     -------
-
+    output : list[Any] :
+        Content of the pickle file.
     """
     output = []
     with open(path_to_file, "rb") as f:
@@ -78,24 +83,27 @@ def read_pickle(path_to_file):
     return output
 
 
-def concat_lists(list_of_lists: list):
+def concat_lists(list_of_lists: list[list[Any]]) -> list[Any]:
     """
     Transform a list of lists into a flat list.
 
     Parameters
     ----------
-    list_of_lists : list[list]
+    list_of_lists : list[list[Any]]
+        List of lists.
 
     Returns
     -------
-    List of elements that in turn are not lists anymore
+    flattened_list : list[Any] :
+        List of elements that in turn are not lists anymore
     """
-    return [val for sublist in list_of_lists for val in sublist]
+    flattened_list = [val for sublist in list_of_lists for val in sublist]
+    return flattened_list
 
 
 def get_frequent_genres(
-    out_path: str = MAIN_DATA_FILE, thr: int = 50, return_type="list"
-):
+    out_path: str = MAIN_DATA_FILE, thr: int = 50, return_type: str = "list"
+) -> pd.DataFrame | list[str]:
     """
     Find the most frequent genres in a user's library.
 
@@ -113,7 +121,8 @@ def get_frequent_genres(
 
     Returns
     -------
-
+    vals : pd.DataFrame | list[str] :
+        List of genres ordered by frequency.
     """
     data = pd.read_pickle(out_path)
     vals = pd.Series(concat_lists(data.GenreList)).value_counts()

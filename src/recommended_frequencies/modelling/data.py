@@ -6,12 +6,15 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from src.modelling.config import CATBOOST_FEATURES
-from src.spotify.config import (MAIN_DATA_FILE, PLAYLIST_FILE,
-                                SIMILAR_PLAYLISTS_FILE)
-from src.project_config import CREATED_DATA_DIR
-from src.spotify.utils import read_pickle
-from src.streamlit.config import FILE_ADDITIONAL_TRAINING_EXAMPLES
+from recommended_frequencies.modelling.config import CATBOOST_FEATURES
+from recommended_frequencies.spotify.config import (
+    MAIN_DATA_FILE,
+    PLAYLIST_FILE,
+    SIMILAR_PLAYLISTS_FILE
+)
+from recommended_frequencies.config import CREATED_DATA_DIR
+from recommended_frequencies.spotify.utils import read_pickle
+from recommended_frequencies.streamlit.config import FILE_ADDITIONAL_TRAINING_EXAMPLES
 
 
 logging.basicConfig(
@@ -33,9 +36,11 @@ def create_song_triplets() -> pd.DataFrame:
     belongs to (as defined in SIMILAR_PLAYLISTS_FILE).
     This format can be consumed both by a siamese network but also easily converted to a tabular format for
     binary classification.
+
     Returns
     -------
-
+    df_examples : pd.DataFrame :
+        The created triplets as a pandas DataFrame.
     """
     # =============================================
     # Load main df source: songs & their attributes
@@ -235,12 +240,15 @@ def create_graph(df: pd.DataFrame, playlists: dict) -> nx.classes.graph.Graph:
 
     Parameters
     ----------
-    df:
-    playlists:
+    df: pd.DataFrame :
+        Dataframe storing song features.
+    playlists: dict :
+        Dictionary mapping playlist name to song list.
 
     Returns
     -------
-
+    graph: nx.classes.graph.Graph :
+        Networkx graph representing relationships amongst songs.
     """
     # Get all edges
     edges = []

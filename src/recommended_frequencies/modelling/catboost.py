@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
 
-from src.modelling.config import CATBOOST_FEATURES
+from recommended_frequencies.modelling.config import CATBOOST_FEATURES
 
 
 def create_train_test_split(

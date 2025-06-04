@@ -1,3 +1,4 @@
+"""Obtain genre embeddings from Every Noise."""
 import re
 from typing import Tuple
 from urllib import request
@@ -6,8 +7,11 @@ import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from src.spotify.config import (EVERYNOISE_GENRE_SPACE,
-                                GENRE_EVERYNOISE_EMBEDDING_FILE, GENRE_FILE)
+from recommended_frequencies.spotify.config import (
+    EVERYNOISE_GENRE_SPACE,
+    GENRE_EVERYNOISE_EMBEDDING_FILE,
+    GENRE_FILE
+)
 
 
 def download_everynoise_genre_space() -> None:
@@ -42,7 +46,13 @@ def _get_position(item) -> Tuple[str, int, int]:
 
     Parameters
     ----------
-    item : BeautifulSoup.element.Tag
+    item : BeautifulSoup.element.Tag :
+        HTML tag containing genre information.
+
+    Returns
+    -------
+    Tuple[str, int, int] :
+        A tuple containing the genre name, x position, and y position.
     """
     genre_name = item.get("onclick").split(",")[1].strip().replace('"', "")
     y = int(re.search("top: (\d+)px", item.get("style")).group(1))

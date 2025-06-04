@@ -11,12 +11,19 @@ import spotipy
 from skimage.io import imread
 from spotipy.oauth2 import SpotifyOAuth
 
-from src.project_config import CREDENTIALS, SCOPES
-from src.spotify.config import (ALBUM_COVER_FILE, GENRE_FILE, MAIN_DATA_FILE,
-                                PLAYLIST_FILE, PLAYLIST_GENRE_FILE,
-                                PREVIEW_FILE, TRACK_FEAT_FILE,
-                                TRACK_PARSED_FILE, TRACK_RAW_FILE)
-from src.spotify.utils import read_pickle, string_similarity
+from recommended_frequencies.config import CREDENTIALS, SCOPES
+from recommended_frequencies.spotify.config import (
+    ALBUM_COVER_FILE,
+    GENRE_FILE,
+    MAIN_DATA_FILE,
+    PLAYLIST_FILE,
+    PLAYLIST_GENRE_FILE,
+    PREVIEW_FILE,
+    TRACK_FEAT_FILE,
+    TRACK_PARSED_FILE,
+    TRACK_RAW_FILE
+)
+from recommended_frequencies.spotify.utils import read_pickle, string_similarity
 
 logging.basicConfig(
     level=logging.INFO,

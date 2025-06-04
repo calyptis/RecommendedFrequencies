@@ -4,18 +4,18 @@ import os
 
 import spotipy
 
-from src.spotify.config import (EVERYNOISE_GENRE_SPACE,
-                                GENRE_EVERYNOISE_EMBEDDING_FILE,
-                                MAIN_DATA_FILE, PLAYLIST_FILE,
-                                PLAYLIST_GENRE_FILE, TRACK_RAW_FILE)
-from src.spotify.genre_embeddings import (download_everynoise_genre_space,
-                                          get_everynoise_embeddings)
-from src.spotify.library import (get_album_covers_for_playlists, get_genres,
-                                 get_missing_preview_urls,
-                                 get_spotipy_instance, get_track_features,
-                                 get_tracks, parse_playlist_genres,
-                                 parse_tracks, get_playlists)
-from src.spotify.merge_data import merge_data
+from recommended_frequencies.spotify.config import (EVERYNOISE_GENRE_SPACE,
+                                                    GENRE_EVERYNOISE_EMBEDDING_FILE,
+                                                    MAIN_DATA_FILE, PLAYLIST_FILE,
+                                                    PLAYLIST_GENRE_FILE, TRACK_RAW_FILE)
+from recommended_frequencies.spotify.genre_embeddings import (download_everynoise_genre_space,
+                                                              get_everynoise_embeddings)
+from recommended_frequencies.spotify.library import (get_album_covers_for_playlists, get_genres,
+                                                     get_missing_preview_urls,
+                                                     get_spotipy_instance, get_track_features,
+                                                     get_tracks, parse_playlist_genres,
+                                                     parse_tracks, get_playlists)
+from recommended_frequencies.spotify.merge_data import merge_data
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,7 +26,7 @@ logging.basicConfig(
     ],
 )
 
-MSG = "\n{}\n========"
+MSG = "{}"
 
 parser = argparse.ArgumentParser(
     prog="Download a user's Spotify library",
@@ -42,10 +42,8 @@ def pipeline(sp: spotipy.client.Spotify, overwrite: bool = False):
     Parameters
     ----------
     sp : spotipy.client.Spotify
-    overwrite : bool
-
-    Returns
-    -------
+    overwrite : bool :
+        Whether to overwrite existing data or not.
 
     """
     if not os.path.exists(TRACK_RAW_FILE) or overwrite:
