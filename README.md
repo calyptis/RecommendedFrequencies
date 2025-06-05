@@ -135,6 +135,7 @@ A song’s genre vector is computed as the average position of its associated ge
 # TODO:
 - [ ] Get the oldest year of release for a given song.
   - For example, if a song appeared in a recent remastered album, track down the first album the song appears in and use that as a release date.
+- [ ] Simplify `spotify/` submodule => one module per data type (tracks, playlists, genres, embeddings, etc.)
 
 # Related projects
 - https://dubolt.com
