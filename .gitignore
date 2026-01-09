@@ -1,10 +1,13 @@
+**.idea/
+**__pycache__
 **/.DS_Store
+
+# Project related files
 credentials/credentials.json
 data/*
 model/*
 .cache
 .spotify_caches
 **.ipynb_checkpoints/
-**.idea/
 catboost_info/
-**__pycache__
+docs/

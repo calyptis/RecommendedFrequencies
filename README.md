@@ -3,31 +3,29 @@
 [**Slide deck**](resources/presentation/Presentation.pdf) | [**Blog post**](https://calyptis.github.io/RecommendedFrequencies/)
 
 # Introduction
-«Recommended Frequencies» is a recommendation engine for playlists and currently works for Spotify.
-Given a selected playlist in a user's library, 
-the app suggests songs from the user's liked songs that may make a good addition to it.
-The current goal of this app is to provide recommendations solely using information from a user's library.
-Thus, methods like collaborative filtering are outside of the current scope.
+Recommended Frequencies is a playlist recommendation engine designed for Spotify. It analyzes a selected playlist from a user's library and suggests additional tracks from their liked songs that would complement it well.
 
-Specifically, under the current scope, song suggestions are based on a trained Catboost model (for more information refer to [the model section](#model)) that uses
-audio features, song attributes and genre information in the form of embeddings provided by [Every Noise at Once](https://everynoise.com/).
-The audio features used by the app are a subset of those provided by [Spotify's API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features) 
-in addition to the year of the song's album release. All features used are listed [here](#audio_features).
+This tool exclusively uses information available in a user’s Spotify library — no collaborative filtering or social data is involved. Recommendations are powered by a CatBoost model trained on audio features, song attributes, and genre embeddings provided by [Every Noise at Once](https://everynoise.com/).
+For more details, see the [the model section](#model).
+The audio features are sourced from [Spotify's API](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features) along with the year of album release. A full list of features can be found [here](#audio_features).
 
 The app is developed using `streamlit`.
 
 # Dashboard
 
-The first step in the dashboard is to select a desired playlist from one's library.
-A selection of songs, the playlist profile as measured by the audio features of its songs
-and some album covers are visualised.
+## Step 1: Select a Playlist
+Choose any playlist from your Spotify library. The app displays:
+
+A song selection
+Audio-based profile of the playlist
+Album covers for visual reference
 
 <img src="resources/images/page1.png" width="800" />
 
-The second step is to select similarity metrics.
-The first option is to simply base similarity off of audio features.
-The second is to include genre information.
-Details on the available similarity metrics can be found in [here](audio_features).
+## Step 2: Navigate Recommendations
+
+- Under the `Similarity Settings` drop-down menu, one can select the method and the number of results to show.
+- The radial plot visualises a selected recommendation.
 
 <img src="resources/images/page2.png" width="800" />
 
@@ -35,17 +33,15 @@ Details on the available similarity metrics can be found in [here](audio_feature
 
 ## 1. Set up Spotify developer account & register app
 
-These steps have been validated with the website's version as of 2021-01-17.
+These instructions were tested with Spotify’s website version from 2021-01-17.
 
-1. Go to https://developer.spotify.com/dashboard/ and create an account
-2. Click on "CREATE AN APP"
-3. Provide the app name & description of your choice, tick the terms of service and click "CREATE"
-4. Click on "EDIT SETTINGS"
-5. Under "Redirect URIs" put `http://localhost:9000/callback/` and `http://localhost:8090`
-6. On the left side of the dashboard, underneath the description of your app, you will find your apps' "Client ID".
-   Take note of it as you will need it in step 2.2.
-7. Below your "Client ID" you will find an option to "SHOW CLIENT SECRET", click on it and take note of the value as you
-   you will need it in step 2.2.
+1. Go to Spotify Developer Dashboard and log in or create an account.
+2. Click CREATE AN APP.
+3. Fill in the app name and description. Agree to the terms and click CREATE.
+4. Click EDIT SETTINGS and add the following Redirect URIs:
+  - http://localhost:9000/callback/
+  - http://localhost:8090
+5. Note your Client ID and Client Secret — you’ll need them in Step 2.2.
 
 ## 2. Set up the environment on your machine
 
@@ -56,15 +52,13 @@ The below instructions are for Linux or MacOS.
 ```commandline
 git clone git@github.com:calyptis/RecommendedFrequencies.git
 cd RecommendedFrequencies
-source prepare_env.sh
+pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2.2 Specify your credentials
 
-In the folder `credentials` create a file named `credentials.json` 
-where you specify the configurations you obtained in step 1.6 & 1.7.
-
-The file has the following structure:
+Create a `credentials.json` file inside the `credentials` folder:
 
 ```python
 {
@@ -75,15 +69,14 @@ The file has the following structure:
 }
 ```
 
-replace your client ID with value from step 1.6 and your client secret from step 1.7.
+Replace `{your_client_id}` and `{your_client_secret}` with the values from Step 1.
 
-### 2.3 Obtain data
+### 2.3 Collect Spotify Data
 
-In order to host the dashboard locally, one must collect all relevant data.
-This can be done by running
+To fetch the necessary data and cache it locally, run:
 
 ```commandline
-python src/spotify/main.py
+python src/recommended_frequencies/spotify/main.py
 ```
 
 Note that this will open a Spotify login page in the browser were one must
@@ -95,10 +88,10 @@ Subsequent API calls will not trigger a log-in page anymore unless this file is 
 
 ### 2.4 Run the dashboard
 
-Once all the data has been obtained, one can spin up the dashboard by running
+Start the app:
 
 ```commandline
-streamlit run src/streamlit/main.py
+streamlit run src/recommended_frequencies/streamlit/main.py
 ```
 
 # User guide
@@ -119,31 +112,30 @@ In this project, a subset of those are used and are listed below with their offi
 7. **Speechiness**: Speechiness detects the presence of spoken words in a track. The more exclusively speech-like the recording (e.g. talk show, audio book, poetry), the closer to 1.0 the attribute value. Values above 0.66 describe tracks that are probably made entirely of spoken words.
 8. **Tempo**: The overall estimated tempo of a track in beats per minute (BPM). In musical terminology, tempo is the speed or pace of a given piece and derives directly from the average beat duration.
 9. **Valence**: A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry).
+10. **Year of Album Release**: Release year of the album the track appears on.
 
-In addition, metadata on songs are considered. Specifically, the 10th audio attribute used in this project is **Year of Album Release**.
-
-All these features are cast to a range of [0, 1] if they are not already.
+All these features are scaled to [0, 1] – if they are not already.
 
 ## 2. [Model](#model)
 
-To measure the similarity between two songs, a `Catboost` model is trained.
-Positive song pairs are generated based on their occurrence in the same playlist.
-Negative song pairs are generated based on user specified pairs of playlists that are very different.
+The recommendation model is based on CatBoost, trained to learn song similarity.
 
-For each song pair, the model uses the audio features as well as their location in the genre space as measured by 
-the Every Noise at Once project. Similar genres lie close to each other in this space, of which a visual representation is available on
-the [project's website](https://everynoise.com).
-Since this musical genre space is two-dimensional, each genre is represented by its `(x, y)` location in the scatter plot.
+- Positive pairs: Songs appearing together in playlists.
+- Negative pairs: Songs from deliberately dissimilar playlists.
 
-A song's location in this space is simply the average of all its associated genres.
+Each pair is represented by:
+- The difference in audio features
+- Their positions in a 2D genre space based on [Every Noise at Once](https://everynoise.com)
+
+A song’s genre vector is computed as the average position of its associated genres in this space.
 
 # Known Bugs:
 - All audio previews are sometimes played at the same time when updating the dashboard.
 
 # TODO:
-- Get the oldest year of release for a given song. 
-  For example, if a song appeared in a recent remastered album, 
-  track down the first album the song appears in and use that as a release date.
+- [ ] Get the oldest year of release for a given song.
+  - For example, if a song appeared in a recent remastered album, track down the first album the song appears in and use that as a release date.
+- [ ] Simplify `spotify/` submodule => one module per data type (tracks, playlists, genres, embeddings, etc.)
 
 # Related projects
 - https://dubolt.com
@@ -152,14 +144,12 @@ A song's location in this space is simply the average of all its associated genr
 - https://www.chosic.com/
 
 # Resources:
-- Spotify's song features
-  - Sample of data: https://www.kaggle.com/nadintamer/top-tracks-of-2017
-  - Description of features: https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features
-- Analysis of music genres
+## Spotify
+- Sample of data: https://www.kaggle.com/nadintamer/top-tracks-of-2017
+- Description of features: https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features
+## Music Genre Analysis
   - Genre similarity: https://everynoise.com/
-- Music recommendation
-  - ML model: https://dl.acm.org/doi/10.1145/3383313.3412248
-- Articles on Spotify's music recommendation
-  - https://www.popsci.com/technology/spotify-audio-recommendation-research/
-- Pre-trained ML models:
-  - https://essentia.upf.edu/machine_learning.html
+## Music Recommendation Research
+- [ACM model](https://dl.acm.org/doi/10.1145/3383313.3412248)
+- [PopSci Article](https://www.popsci.com/technology/spotify-audio-recommendation-research/)
+- [Pre-trained Essentia models](https://essentia.upf.edu/machine_learning.html)
