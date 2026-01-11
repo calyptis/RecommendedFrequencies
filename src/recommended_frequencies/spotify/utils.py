@@ -1,10 +1,19 @@
+import logging
 import pickle
-from difflib import SequenceMatcher
+import time
+from thefuzz import fuzz
 from typing import Any, Iterator
+from urllib import request
+from urllib.error import HTTPError, URLError
 
 import pandas as pd
 
-from recommended_frequencies.spotify.config import MAIN_DATA_FILE
+from recommended_frequencies.spotify.config import (
+    MAIN_DATA_FILE,
+    REQUEST_TIMEOUT_SECONDS,
+    MAX_RETRIES,
+    RETRY_DELAY_SECONDS,
+)
 
 
 def clean_string(x: str):
@@ -40,7 +49,7 @@ def string_similarity(string_a: str, string_b: str):
     string_sim: float :
         Similarity between two strings [0, 1].
     """
-    string_sim = SequenceMatcher(None, string_a, string_b).ratio()
+    string_sim = fuzz.ratio(string_a, string_b) / 100
     return string_sim
 
 
@@ -133,3 +142,43 @@ def get_frequent_genres(
         return vals[mask]
     else:
         raise Exception(f"return_type == '{return_type}' is not supported")
+
+
+def _fetch_url_with_retry(url: str) -> bytes:
+    """
+    Fetch URL content with timeout and retry logic.
+
+    Parameters
+    ----------
+    url : str
+        URL to fetch.
+
+    Returns
+    -------
+    bytes
+        Response body content.
+
+    Raises
+    ------
+    URLError
+        If all retry attempts fail.
+    """
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return request.urlopen(url, timeout=REQUEST_TIMEOUT_SECONDS).read()
+        except (HTTPError, URLError, TimeoutError) as e:
+            last_error = e
+            if attempt < MAX_RETRIES:
+                # Exponential backoff
+                delay = RETRY_DELAY_SECONDS * attempt
+                logging.warning(
+                    f"Request to {url} failed (attempt {attempt}/{MAX_RETRIES}): {e}. "
+                    f"Retrying in {delay}s..."
+                )
+                time.sleep(delay)
+            else:
+                logging.error(
+                    f"Request to {url} failed after {MAX_RETRIES} attempts: {e}"
+                )
+    raise last_error
