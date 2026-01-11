@@ -1,7 +1,7 @@
 import argparse
-import logging
 import os
 
+from loguru import logger
 import spotipy
 
 from recommended_frequencies.spotify.config import (
@@ -29,17 +29,6 @@ from recommended_frequencies.spotify.library import (
 )
 from recommended_frequencies.spotify.merge_data import merge_data
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        # logging.FileHandler("debug.log"),
-        logging.StreamHandler()
-    ],
-)
-
-MSG = "{}"
-
 parser = argparse.ArgumentParser(
     prog="Download a user's Spotify library",
     description="Download saved tracks, their genres and audio features as well as playlist information.",
@@ -56,40 +45,38 @@ def pipeline(sp: spotipy.client.Spotify, overwrite: bool = False):
     sp : spotipy.client.Spotify
     overwrite : bool :
         Whether to overwrite existing data or not.
-
     """
     if not os.path.exists(TRACK_RAW_FILE) or overwrite:
-        logging.info(msg=MSG.format("Download tracks"))
+        logger.info("Download tracks")
         get_tracks(sp, verbose=1)
     if not os.path.exists(PLAYLIST_FILE) or overwrite:
-        logging.info(msg=MSG.format("Downloading playlists"))
+        logger.info("Downloading playlists")
         get_playlists(sp)
-    logging.info(msg=MSG.format("Parsing tracks"))
+    logger.info("Parsing tracks")
     parse_tracks()
     # Works incrementally
-    logging.info(msg=MSG.format("Download genres"))
+    logger.info("Download genres")
     get_genres(sp, verbose=1)
     # Works incrementally
-    logging.info(msg=MSG.format("Download audio features"))
+    logger.info("Download audio features")
     get_track_features(sp, verbose=1)
     # Works incrementally
-    logging.info(msg=MSG.format("Download missing previews"))
+    logger.info("Download missing previews")
     get_missing_preview_urls(sp, verbose=1)
     if not os.path.exists(EVERYNOISE_GENRE_SPACE) or overwrite:
-        logging.info(msg=MSG.format("Download Every Noise At Once Genre Space"))
+        logger.info("Download Every Noise At Once Genre Space")
         download_everynoise_genre_space()
     if not os.path.exists(GENRE_EVERYNOISE_EMBEDDING_FILE) or overwrite:
-        logging.info(msg=MSG.format("Obtain Every Noise At Once Genre embeddings"))
+        logger.info("Obtain Every Noise At Once Genre embeddings")
         get_everynoise_embeddings()
     if not os.path.exists(MAIN_DATA_FILE) or overwrite:
-        logging.info(msg=MSG.format("Merge data"))
+        logger.info("Merge data")
         merge_data()
     if not os.path.exists(PLAYLIST_GENRE_FILE) or overwrite:
-        logging.info(msg=MSG.format("Obtain genre playlist profiles"))
+        logger.info("Obtain genre playlist profiles")
         parse_playlist_genres(verbose=1)
-    # Works incrementally => if songs were removed from a playlist
-    # File needs to be overwritten
-    logging.info(msg=MSG.format("Getting album cover samples"))
+    # Works incrementally however if songs were removed from a playlist this file needs to be overwritten
+    logger.info("Getting album cover samples")
     get_album_covers_for_playlists(verbose=1)
 
 
