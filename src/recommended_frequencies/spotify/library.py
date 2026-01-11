@@ -7,6 +7,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import requests
 import spotipy
 from skimage.io import imread
 from spotipy.oauth2 import SpotifyOAuth
@@ -276,10 +277,10 @@ def get_track_features(
             if not audio_features:
                 continue
             features.append(audio_features)
-        except Exception as e:
-            if verbose >= 1:
-                print(f"Issue {e} with {track}")
-            pass
+        except spotipy.exceptions.SpotifyException as e:
+            logging.warning(f"Spotify API error for track {track}: {e}")
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"Network error for track {track}: {e}")
         if count % update_interval == 0:
             if verbose >= 1:
                 logging.info(f"Downloaded audio features for {count} tracks")
@@ -347,7 +348,7 @@ def get_playlists(
                     }
                 ]
             offset += len(items)
-        if (offset % update_interval == 0) & (offset != 0):
+        if (offset % update_interval == 0) and (offset != 0):
             if verbose >= 0:
                 logging.info(f"Processed {offset:.0f} playlists")
             pickle.dump(playlists, open(out_file, "ab+"))
@@ -487,7 +488,10 @@ def _get_playlist_tracks(sp: spotipy.client.Spotify, playlist_id: str) -> list:
                     (i["track"]["id"], [j["id"] for j in i["track"]["artists"]])
                 ]
             except TypeError:
-                pass
+                # Track may be None for local files or unavailable tracks
+                logging.debug(
+                    f"Skipping track with invalid structure in playlist {playlist_id}"
+                )
         playlist_tracks = playlist_tracks + current_track_extract
     return playlist_tracks
 
