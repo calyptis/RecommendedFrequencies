@@ -1,12 +1,12 @@
 import itertools
-import logging
 import os
 
+from loguru import logger
 import networkx as nx
 import numpy as np
 import pandas as pd
 
-from recommended_frequencies.modelling.config import CATBOOST_FEATURES
+from recommended_frequencies.modelling.config import CATBOOST_FEATURES, ADDTL_POS_FRAC
 from recommended_frequencies.spotify.config import (
     MAIN_DATA_FILE,
     PLAYLIST_FILE,
@@ -15,16 +15,6 @@ from recommended_frequencies.spotify.config import (
 from recommended_frequencies.config import CREATED_DATA_DIR
 from recommended_frequencies.spotify.utils import read_pickle
 from recommended_frequencies.streamlit.config import FILE_ADDITIONAL_TRAINING_EXAMPLES
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        # logging.FileHandler("debug.log"),
-        logging.StreamHandler()
-    ],
-)
 
 
 def create_song_triplets() -> pd.DataFrame:
@@ -81,9 +71,9 @@ def create_song_triplets() -> pd.DataFrame:
         [(i[1], i[0], i[2]["playlist"]) for i in graph.edges(data=True)]
     )
     # Add some more positive examples => both inputs are the same song
-    frac = 0.4
+
     tmp = np.random.choice(
-        list(graph.nodes()), size=int(pos_examples.shape[0] * frac)
+        list(graph.nodes()), size=int(pos_examples.shape[0] * ADDTL_POS_FRAC)
     ).flatten()
     # TODO: Pick a playlist the song appears instead of randomly choosing one
     addtl_pos_examples = np.array(
@@ -92,7 +82,7 @@ def create_song_triplets() -> pd.DataFrame:
     pos_examples = np.concatenate(
         (pos_examples, switched_pos_examples, addtl_pos_examples)
     )
-    logging.info(f"Positive examples: {pos_examples.shape[0]:,}")
+    logger.info(f"Positive examples: {pos_examples.shape[0]:,}")
 
     # ========================
     # Create negative examples
@@ -132,7 +122,7 @@ def create_song_triplets() -> pd.DataFrame:
             # add the name of the playlist to data/exclude_playlists.txt
             raise Exception(f"No tracks for playlist {different_playlist}")
 
-    logging.info(f"Negative examples: {neg_examples.shape[0]:,}")
+    logger.info(f"Negative examples: {neg_examples.shape[0]:,}")
 
     # =========================================================
     # Combine positive and negative examples into one dataframe
@@ -165,7 +155,7 @@ def create_song_triplets() -> pd.DataFrame:
         tmp["negative_example"] = negative_examples
         to_add.append(tmp)
     df_to_add = pd.concat(to_add)
-    logging.info(
+    logger.info(
         f"Adding {len(df_to_add):,} additional negative examples collected as feedback from the app."
     )
 
@@ -174,17 +164,24 @@ def create_song_triplets() -> pd.DataFrame:
     return df_examples  # .to_csv(ML_DATA_FILE, index=False)
 
 
-def create_song_pair_features(df_triples_examples: pd.DataFrame):
+def create_song_pair_features(df_triples_examples: pd.DataFrame) -> pd.DataFrame:
     """
-    TODO: add docstring.
+    Convert song triplets to pairwise features for binary classification.
+
+    Transforms triplet examples (anchor, positive, negative) into song pairs with
+    binary labels (1 for positive pairs, 0 for negative pairs). Each pair is enriched
+    with audio features and genre embeddings for both songs, suffixed with '_a' and '_b'.
 
     Parameters
     ----------
-    df_triples_examples
+    df_triples_examples : pd.DataFrame
+        DataFrame containing columns: 'anchor', 'positive_example', 'negative_example', 'playlist'.
 
     Returns
     -------
-
+    pd.DataFrame
+        DataFrame indexed by song ID with columns for both songs' features (suffixed '_a', '_b'),
+        'playlist' context, and 'target' label (1=similar, 0=dissimilar).
     """
     # Load main data source: songs & their attributes
     df = pd.read_pickle(MAIN_DATA_FILE)
@@ -272,7 +269,7 @@ def create_graph(df: pd.DataFrame, playlists: dict) -> nx.classes.graph.Graph:
     )
 
     # Get all nodes in the graph
-    nodes = set(edges.song_1) & (set(edges.song_2))
+    nodes = set(edges.song_1) | (set(edges.song_2))
     # There should be as many nodes as songs in our feature dataset
     assert len(nodes - set(df.index)) == 0
 
