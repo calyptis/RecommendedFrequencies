@@ -45,16 +45,18 @@ These instructions were tested with Spotify’s website version from 2021-01-17.
 
 ## 2. Set up the environment on your machine
 
-### 2.1 Get the code & set environmental variables
+### 2.1 Get the code & install dependencies
 
 The below instructions are for Linux or MacOS.
 
 ```commandline
 git clone git@github.com:calyptis/RecommendedFrequencies.git
 cd RecommendedFrequencies
-pip install -r requirements.txt
-pip install -e .
+uv sync
 ```
+
+This will create a virtual environment and install all dependencies.
+To run commands within the environment, use `uv run` (e.g., `uv run python ...`) or activate the environment with `source .venv/bin/activate`.
 
 ### 2.2 Specify your credentials
 
