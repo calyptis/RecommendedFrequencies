@@ -1,7 +1,7 @@
 """Obtain genre embeddings from Every Noise."""
+import ast
 import re
 from typing import Tuple
-from urllib import request
 
 import numpy as np
 import pandas as pd
@@ -11,12 +11,14 @@ from recommended_frequencies.spotify.config import (
     EVERYNOISE_GENRE_SPACE,
     GENRE_EVERYNOISE_EMBEDDING_FILE,
     GENRE_FILE,
+    EVERYNOISE_URL,
 )
+from recommended_frequencies.spotify.utils import _fetch_url_with_retry
 
 
 def download_everynoise_genre_space() -> None:
     """Parse genre positions in the embedded genre space as reported on https://everynoise.com/."""
-    url_body = request.urlopen("https://everynoise.com/").read()
+    url_body = _fetch_url_with_retry(EVERYNOISE_URL)
     soup = BeautifulSoup(url_body, "html.parser")
     # All the genres in scatter plot
     genres = soup.findAll("div", id=lambda x: x and x.startswith("item"))
@@ -29,7 +31,7 @@ def get_everynoise_embeddings() -> None:
     """Given a list of genres for an artist, calculate the centroid across all their (x, y) coordinates."""
     genres_df = pd.read_csv(GENRE_FILE)
     genre_space_df = pd.read_csv(EVERYNOISE_GENRE_SPACE).set_index("genre")
-    genres_df["GenreList"] = genres_df["GenreList"].apply(eval)
+    genres_df["GenreList"] = genres_df["GenreList"].apply(ast.literal_eval)
     # Only consider genres in every noise
     everynoise_genres = set(genre_space_df.index)
     genres_df["GenreList"] = genres_df["GenreList"].apply(
@@ -38,7 +40,7 @@ def get_everynoise_embeddings() -> None:
     genres_df["GenreEveryNoiseEmbedding"] = genres_df["GenreList"].apply(
         lambda x: np.nanmean(genre_space_df.loc[x].values, axis=0)
     )
-    # Save as JSON because some column values are lists
+    # Save as Pickle because some column values are lists
     genres_df.to_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
 
 

@@ -22,3 +22,7 @@ GENRE_EVERYNOISE_EMBEDDING_FILE = os.path.join(
 )
 EVERYNOISE_GENRE_SPACE = os.path.join(RAW_DATA_DIR, "genre_space_everynoise.csv")
 ALBUM_COVER_FILE = os.path.join(RAW_DATA_DIR, "playlist_album_covers.pickle")
+EVERYNOISE_URL = "https://everynoise.com/"
+REQUEST_TIMEOUT_SECONDS = 30
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 2
