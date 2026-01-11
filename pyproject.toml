@@ -7,7 +7,7 @@ name = "recommended_frequencies"
 authors = [{"name" = "Lucas Chizzali"}]
 description = "Recommend songs to add to Spotify playlist."
 readme = "README.md"
-requires-python = "==3.11"
+requires-python = ">=3.11,<3.12"
 dynamic = ["version"]
 dependencies = [
     "spotipy>=2.19.0rc1,<=2.19.0",
@@ -25,7 +25,8 @@ dependencies = [
     "networkx~=3.5",
     "catboost~=1.2",
     "thefuzz~=0.22.1",
-    "loguru~=0.7.3"
+    "loguru~=0.7.3",
+    "notebook>=7.5.1",
 ]
 
 [tool.setuptools.dynamic]
