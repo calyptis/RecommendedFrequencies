@@ -135,6 +135,9 @@ A song’s genre vector is computed as the average position of its associated ge
 - All audio previews are sometimes played at the same time when updating the dashboard.
 
 # TODO:
+- [ ] Use Parquet or JSONL instead of pickle.
+- [ ] Investigate using `duckdb` to manage user mapping of songs and playlists
+  - Would allow storing feedback of which model suggestions are declined by users
 - [ ] Get the oldest year of release for a given song.
   - For example, if a song appeared in a recent remastered album, track down the first album the song appears in and use that as a release date.
 - [ ] Simplify `spotify/` submodule => one module per data type (tracks, playlists, genres, embeddings, etc.)
