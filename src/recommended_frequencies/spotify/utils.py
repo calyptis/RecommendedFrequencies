@@ -1,18 +1,18 @@
-import logging
 import pickle
 import time
-from thefuzz import fuzz
 from typing import Any, Iterator
 from urllib import request
 from urllib.error import HTTPError, URLError
 
+from loguru import logger
 import pandas as pd
+from thefuzz import fuzz
 
 from recommended_frequencies.spotify.config import (
-    MAIN_DATA_FILE,
     REQUEST_TIMEOUT_SECONDS,
     MAX_RETRIES,
     RETRY_DELAY_SECONDS,
+    SpotifyFiles,
 )
 
 
@@ -111,7 +111,9 @@ def concat_lists(list_of_lists: list[list[Any]]) -> list[Any]:
 
 
 def get_frequent_genres(
-    out_path: str = MAIN_DATA_FILE, thr: int = 50, return_type: str = "list"
+    out_path: str = SpotifyFiles.MAIN_DATA_FILE,
+    thr: int = 50,
+    return_type: str = "list",
 ) -> pd.DataFrame | list[str]:
     """
     Find the most frequent genres in a user's library.
@@ -172,13 +174,13 @@ def _fetch_url_with_retry(url: str) -> bytes:
             if attempt < MAX_RETRIES:
                 # Exponential backoff
                 delay = RETRY_DELAY_SECONDS * attempt
-                logging.warning(
+                logger.warning(
                     f"Request to {url} failed (attempt {attempt}/{MAX_RETRIES}): {e}. "
                     f"Retrying in {delay}s..."
                 )
                 time.sleep(delay)
             else:
-                logging.error(
+                logger.error(
                     f"Request to {url} failed after {MAX_RETRIES} attempts: {e}"
                 )
     raise last_error

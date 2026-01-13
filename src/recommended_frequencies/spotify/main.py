@@ -4,14 +4,7 @@ import os
 from loguru import logger
 import spotipy
 
-from recommended_frequencies.spotify.config import (
-    EVERYNOISE_GENRE_SPACE,
-    GENRE_EVERYNOISE_EMBEDDING_FILE,
-    MAIN_DATA_FILE,
-    PLAYLIST_FILE,
-    PLAYLIST_GENRE_FILE,
-    TRACK_RAW_FILE,
-)
+from recommended_frequencies.spotify.config import SpotifyFiles
 from recommended_frequencies.spotify.genre_embeddings import (
     download_everynoise_genre_space,
     get_everynoise_embeddings,
@@ -46,35 +39,31 @@ def pipeline(sp: spotipy.client.Spotify, overwrite: bool = False):
     overwrite : bool :
         Whether to overwrite existing data or not.
     """
-    if not os.path.exists(TRACK_RAW_FILE) or overwrite:
-        logger.info("Download tracks")
-        get_tracks(sp, verbose=1)
-    if not os.path.exists(PLAYLIST_FILE) or overwrite:
-        logger.info("Downloading playlists")
+    if not os.path.exists(SpotifyFiles.TRACK_RAW_FILE) or overwrite:
+        get_tracks(sp)
+    if not os.path.exists(SpotifyFiles.PLAYLIST_FILE) or overwrite:
         get_playlists(sp)
-    logger.info("Parsing tracks")
+    # No need to make it work incrementally => is fast
     parse_tracks()
     # Works incrementally
-    logger.info("Download genres")
-    get_genres(sp, verbose=1)
+    get_genres(sp)
     # Works incrementally
-    logger.info("Download audio features")
-    get_track_features(sp, verbose=1)
+    get_track_features(sp)
     # Works incrementally
     logger.info("Download missing previews")
-    get_missing_preview_urls(sp, verbose=1)
-    if not os.path.exists(EVERYNOISE_GENRE_SPACE) or overwrite:
+    get_missing_preview_urls(sp)
+    if not os.path.exists(SpotifyFiles.GENRE_COORDINATES) or overwrite:
         logger.info("Download Every Noise At Once Genre Space")
         download_everynoise_genre_space()
-    if not os.path.exists(GENRE_EVERYNOISE_EMBEDDING_FILE) or overwrite:
+    if not os.path.exists(SpotifyFiles.GENRE_EMBEDDING_SPACE) or overwrite:
         logger.info("Obtain Every Noise At Once Genre embeddings")
         get_everynoise_embeddings()
-    if not os.path.exists(MAIN_DATA_FILE) or overwrite:
+    if not os.path.exists(SpotifyFiles.MAIN_DATA_FILE) or overwrite:
         logger.info("Merge data")
         merge_data()
-    if not os.path.exists(PLAYLIST_GENRE_FILE) or overwrite:
+    if not os.path.exists(SpotifyFiles.PLAYLIST_GENRE_FILE) or overwrite:
         logger.info("Obtain genre playlist profiles")
-        parse_playlist_genres(verbose=1)
+        parse_playlist_genres()
     # Works incrementally however if songs were removed from a playlist this file needs to be overwritten
     logger.info("Getting album cover samples")
     get_album_covers_for_playlists(verbose=1)

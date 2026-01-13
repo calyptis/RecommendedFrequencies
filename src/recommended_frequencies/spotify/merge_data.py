@@ -4,23 +4,17 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-from recommended_frequencies.spotify.config import (
-    GENRE_EVERYNOISE_EMBEDDING_FILE,
-    MAIN_DATA_FILE,
-    PREVIEW_FILE,
-    TRACK_FEAT_FILE,
-    TRACK_PARSED_FILE,
-)
+from recommended_frequencies.spotify.config import SpotifyFiles
 
 
 def merge_data():
     """Merge all data sources into a single file that can be used to calculate song similarities."""
-    genres_everynoise_df = pd.read_pickle(GENRE_EVERYNOISE_EMBEDDING_FILE)
+    genres_everynoise_df = pd.read_pickle(SpotifyFiles.GENRE_EMBEDDING_SPACE)
 
-    tracks_df = pd.read_csv(TRACK_PARSED_FILE).set_index("ID")
+    tracks_df = pd.read_csv(SpotifyFiles.TRACK_PARSED_FILE).set_index("ID")
     tracks_df["AlbumReleaseYear"] = pd.to_datetime(tracks_df.AlbumReleaseDate).dt.year
 
-    features_df = pd.read_csv(TRACK_FEAT_FILE).set_index("ID")
+    features_df = pd.read_csv(SpotifyFiles.TRACK_FEAT_FILE).set_index("ID")
     features_df.drop(
         [
             "type",
@@ -118,7 +112,7 @@ def merge_data():
 
     # Replace missing preview URLs
     additional_preview_urls = (
-        pd.read_csv(PREVIEW_FILE)
+        pd.read_json(SpotifyFiles.PREVIEW_FILE, lines=True, orient="records")
         .set_index("ID")
         .rename(columns={"PreviewURL": "PreviewURLAdditional"})
     )
@@ -135,7 +129,7 @@ def merge_data():
     # remove these songs
     # data = data.query("~missing_everynoise_genre")
 
-    data.to_pickle(MAIN_DATA_FILE)
+    data.to_pickle(SpotifyFiles.MAIN_DATA_FILE)
 
 
 if __name__ == "__main__":

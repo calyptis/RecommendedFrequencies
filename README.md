@@ -134,6 +134,9 @@ A song’s genre vector is computed as the average position of its associated ge
 # Known Bugs:
 - All audio previews are sometimes played at the same time when updating the dashboard.
 
+# Currently improving:
+- Filenames and formats of those created by `spotify` submodule.
+
 # TODO:
 - [ ] Use Parquet or JSONL instead of pickle.
 - [ ] Investigate using `duckdb` to manage user mapping of songs and playlists
@@ -141,6 +144,7 @@ A song’s genre vector is computed as the average position of its associated ge
 - [ ] Get the oldest year of release for a given song.
   - For example, if a song appeared in a recent remastered album, track down the first album the song appears in and use that as a release date.
 - [ ] Simplify `spotify/` submodule => one module per data type (tracks, playlists, genres, embeddings, etc.)
+- [ ] Use `spotipy`'s support for retry and error handling
 
 # Related projects
 - https://dubolt.com

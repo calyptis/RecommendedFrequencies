@@ -1,10 +1,10 @@
 import argparse
 import json
-import logging
 import os
 import pickle
 import time
 
+from loguru import logger
 import numpy as np
 import pandas as pd
 import requests
@@ -13,27 +13,9 @@ from skimage.io import imread
 from spotipy.oauth2 import SpotifyOAuth
 
 from recommended_frequencies.config import CREDENTIALS, SCOPES
-from recommended_frequencies.spotify.config import (
-    ALBUM_COVER_FILE,
-    GENRE_FILE,
-    MAIN_DATA_FILE,
-    PLAYLIST_FILE,
-    PLAYLIST_GENRE_FILE,
-    PREVIEW_FILE,
-    TRACK_FEAT_FILE,
-    TRACK_PARSED_FILE,
-    TRACK_RAW_FILE,
-)
+from recommended_frequencies.spotify.config import SpotifyFiles
 from recommended_frequencies.spotify.utils import read_pickle, string_similarity
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        # logging.FileHandler("debug.log"),
-        logging.StreamHandler()
-    ],
-)
+from recommended_frequencies.utils import write_jsonl, read_jsonl
 
 
 def get_spotipy_instance() -> spotipy.client.Spotify:
@@ -55,20 +37,17 @@ def get_spotipy_instance() -> spotipy.client.Spotify:
     return sp_instance
 
 
-def get_tracks(sp: spotipy.client.Spotify, verbose: int = 0):
+def get_tracks(sp: spotipy.client.Spotify):
     """
     Get all songs in a user's library.
 
     Parameters
     ----------
     sp : spotipy.client.Spotify
-    verbose : int
-
-    Returns
-    -------
-
     """
-    limit = 50  # Seems to be the maximum accepted
+    logger.info("Download tracks of user")
+    # Seems to be the maximum accepted
+    limit = 50
     offset = 0
     update_interval = 50
     results = []
@@ -85,34 +64,30 @@ def get_tracks(sp: spotipy.client.Spotify, verbose: int = 0):
                 results.append(entry)
             offset += len(library_extract["items"])
         if offset % update_interval == 0:
-            if verbose >= 1:
-                logging.info(f"Downloaded {offset} tracks")
-            pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
-            time.sleep(
-                0.5
-            )  # Make sure not too many API calls are made in a short amount of time
+            logger.info(f"Downloaded {offset} tracks")
+            write_jsonl(results, SpotifyFiles.TRACK_RAW_FILE)
+            # Make sure not too many API calls are made in a short amount of time
+            time.sleep(0.5)
             results = []
-    pickle.dump(results, open(TRACK_RAW_FILE, "ab+"))
+    write_jsonl(results, SpotifyFiles.TRACK_RAW_FILE)
+    logger.info(f"Successfully downloaded {len(results)} tracks for user")
 
 
 def parse_tracks() -> None:
     """
     Parse track information, i.e. select on the most relevant track attributes.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
     """
-    results_raw = read_pickle(TRACK_RAW_FILE)
+    logger.info("Parse tracks")
+    results_raw = read_jsonl(SpotifyFiles.TRACK_RAW_FILE)
     results_parsed = [_parse_track_info(entry) for entry in results_raw]
     library = pd.DataFrame(results_parsed).drop_duplicates(subset=["ID"])
-    library.to_csv(TRACK_PARSED_FILE, index=False)
+    library.to_json(
+        SpotifyFiles.TRACK_PARSED_FILE, index=False, lines=True, orient="records"
+    )
+    logger.info("Successfully parsed tracks")
 
 
-def get_missing_preview_urls(sp: spotipy.client.Spotify, verbose: int = 0):
+def get_missing_preview_urls(sp: spotipy.client.Spotify):
     """
     When getting all tracks in a user's library, sometimes some preview URLs are missing.
 
@@ -120,23 +95,27 @@ def get_missing_preview_urls(sp: spotipy.client.Spotify, verbose: int = 0):
     Note that not all songs have a preview, so this function looks for the closes match
     in terms of string similarity that has a preview url.
 
+    TODO: There seems to be no preview URLs anymore.
+
     Parameters
     ----------
     sp : spotipy.client.Spotify
-    verbose : int
 
     Returns
     -------
     """
     # Read in previously downloaded track information
-    library = pd.read_csv(TRACK_PARSED_FILE)
+    library = pd.read_csv(SpotifyFiles.TRACK_PARSED_FILE)
     mask = library.PreviewURL.isnull()
     # Get relevant information on songs with missing preview URL
     df = library.loc[mask, ["ID", "SongName", "Artist"]]
     # Read in preview urls already obtained
-    if os.path.exists(PREVIEW_FILE):
-        already_downloaded = pd.read_csv(PREVIEW_FILE)
+    if os.path.exists(SpotifyFiles.PREVIEW_FILE):
+        already_downloaded = pd.read_json(
+            SpotifyFiles.PREVIEW_FILE, lines=True, orient="records"
+        )
         df = df.loc[~df.ID.isin(already_downloaded.ID.unique())].copy()
+    logger.info(f"No audio previews found for {len(df)} tracks")
     results = []
     count = 0
     update_interval = 50
@@ -146,7 +125,7 @@ def get_missing_preview_urls(sp: spotipy.client.Spotify, verbose: int = 0):
         track = sp.search(query, limit=10, offset=0, type="track", market=None)
         if not track:
             # Keep track of songs for which no preview is available
-            results.append((row.ID, np.NaN))
+            results.append((row.ID, pd.NA))
             continue
         items = track["tracks"]["items"]
         # Filter out matches without preview url and calculate string similarity
@@ -172,40 +151,48 @@ def get_missing_preview_urls(sp: spotipy.client.Spotify, verbose: int = 0):
             results.append((row.ID, best_match_preview_url))
         else:
             # Keep track of songs for which no preview is available
-            results.append((row.ID, np.NaN))
+            results.append((row.ID, pd.NA))
         if count % update_interval == 0:
-            if verbose >= 1:
-                logging.info(f"Downloaded previews for {count} tracks")
-            flag = os.path.exists(PREVIEW_FILE) is False
+            logger.info(f"Downloaded previews for {count} tracks")
+            flag_file_exists = os.path.exists(SpotifyFiles.PREVIEW_FILE)
             df_results = pd.DataFrame(results, columns=["ID", "PreviewURL"])
-            df_results.to_csv(
-                PREVIEW_FILE, index=False, mode="a" if ~flag else "w", header=flag
+            df_results.to_json(
+                SpotifyFiles.PREVIEW_FILE,
+                index=False,
+                mode="a" if flag_file_exists else "w",
+                lines=True,
+                orient="records",
             )
             results = []  # Clear memory
             time.sleep(0.5)
 
     df_results = pd.DataFrame(results, columns=["ID", "PreviewURL"])
-    df_results.to_csv(PREVIEW_FILE, index=False, mode="a", header=False)
+    df_results.to_json(
+        SpotifyFiles.PREVIEW_FILE,
+        index=False,
+        mode="a",
+        lines=True,
+        orient="records",
+    )
 
 
-def get_genres(sp: spotipy.client.Spotify, verbose: int = 0):
+def get_genres(sp: spotipy.client.Spotify):
     """
     Obtain genres of artists in a user's library.
 
     Parameters
     ----------
     sp : spotipy.client.Spotify
-    verbose : int
-
-    Returns
-    -------
 
     """
-    library = pd.read_csv(TRACK_PARSED_FILE)
+    logger.info("Download genre information of artists")
+    library = pd.read_json(SpotifyFiles.TRACK_PARSED_FILE, lines=True, orient="records")
     # Flatten the list of lists of artists in a user's library
     artist_ids = list(set(np.concatenate(library.ArtistID.str.split("|").values)))
-    if os.path.exists(GENRE_FILE):
-        existing_artist_genres = pd.read_csv(GENRE_FILE)
+    if os.path.exists(SpotifyFiles.GENRE_FILE):
+        existing_artist_genres = pd.read_json(
+            SpotifyFiles.GENRE_FILE, lines=True, orient="records"
+        )
         artist_ids = list(set(artist_ids) - set(existing_artist_genres.ArtistID))
     results = []
     count = 0
@@ -222,22 +209,27 @@ def get_genres(sp: spotipy.client.Spotify, verbose: int = 0):
         }
         results.append(parsed_entry)
         if count % update_interval == 0:
-            if verbose >= 1:
-                logging.info(f"Downloaded genre information for {count} artists")
-            flag = os.path.exists(GENRE_FILE) is False
+            logger.info(f"Downloaded genre information for {count} artists")
+            flag_file_exists = os.path.exists(SpotifyFiles.GENRE_FILE)
             artist_genres = pd.DataFrame(results)
-            artist_genres.to_csv(
-                GENRE_FILE, index=False, header=flag, mode="a" if ~flag else "w"
+            artist_genres.to_json(
+                SpotifyFiles.GENRE_FILE,
+                index=False,
+                mode="a" if flag_file_exists else "w",
+                orient="records",
+                lines=True,
             )
-            results = []  # Clear memory
+            # Clear memory
+            results = []
 
     artist_genres = pd.DataFrame(results)
-    artist_genres.to_csv(GENRE_FILE, index=False, mode="a", header=False)
+    artist_genres.to_json(
+        SpotifyFiles.GENRE_FILE, index=False, mode="a", orient="records", lines=True
+    )
+    logger.info("Successfully downloaded genre information of artists")
 
 
-def get_track_features(
-    sp: spotipy.client.Spotify, library: str = None, verbose: int = 0
-):
+def get_track_features(sp: spotipy.client.Spotify, library: str | pd.DataFrame = None):
     """
     Obtain high-level audio features for tracks in a user's library.
 
@@ -247,20 +239,21 @@ def get_track_features(
     Parameters
     ----------
     sp : spotipy.client.Spotify
-    library : None or pd.DataFrame
-        None if querying the entire library, otherwise specify the subset of the library.
-    verbose : int
-
-    Returns
-    -------
-
+    library : Optional[str | pd.DataFrame]:
+        Default is None => download tracks for the entire library
+        Otherwise, specify DataFrame representing a subset of the library.
     """
+    logger.info("Download audio features")
     if library is None:
-        library = pd.read_csv(TRACK_PARSED_FILE)
+        library = pd.read_json(
+            SpotifyFiles.TRACK_PARSED_FILE, lines=True, orient="records"
+        )
 
-    if os.path.exists(TRACK_FEAT_FILE):
-        already_downloaded_track_feat = pd.read_csv(TRACK_FEAT_FILE)
-        already_downloaded_ids = already_downloaded_track_feat.ID
+    if os.path.exists(SpotifyFiles.TRACK_FEAT_FILE):
+        already_downloaded_track_feat = pd.read_json(
+            SpotifyFiles.TRACK_FEAT_FILE, lines=True, orient="records"
+        )
+        already_downloaded_ids = already_downloaded_track_feat["ID"]
     else:
         already_downloaded_ids = []
 
@@ -270,7 +263,6 @@ def get_track_features(
     count = 0
     update_interval = 50
     for i, track in enumerate(to_download_ids):
-        count += 1
         try:
             # For more detailed features, use sp.audio_analysis
             audio_features = sp.audio_features(track)
@@ -278,30 +270,42 @@ def get_track_features(
                 continue
             features.append(audio_features)
         except spotipy.exceptions.SpotifyException as e:
-            logging.warning(f"Spotify API error for track {track}: {e}")
+            logger.warning(f"Spotify API error for track {track}: {e}")
         except requests.exceptions.RequestException as e:
-            logging.warning(f"Network error for track {track}: {e}")
+            logger.warning(f"Network error for track {track}: {e}")
         if count % update_interval == 0:
-            if verbose >= 1:
-                logging.info(f"Downloaded audio features for {count} tracks")
+            logger.info(f"Downloaded audio features for {count} tracks")
             features_df = pd.DataFrame(
                 [i[0] for i in features if isinstance(i[0], dict)]
             ).rename(columns={"id": "ID"})
-            flag = os.path.exists(TRACK_FEAT_FILE) is False
-            features_df.to_csv(
-                TRACK_FEAT_FILE, mode="a" if ~flag else "w", header=flag, index=False
+            flag_file_exists = os.path.exists(SpotifyFiles.TRACK_FEAT_FILE)
+            features_df.to_json(
+                SpotifyFiles.TRACK_FEAT_FILE,
+                mode="a" if flag_file_exists else "w",
+                index=False,
+                lines=True,
+                orient="records",
             )
-            features = []  # Clear memory
+            # Clear memory
+            features = []
+        count += 1
     features_df = pd.DataFrame(
         [i[0] for i in features if isinstance(i[0], dict)]
     ).rename(columns={"id": "ID"})
-    features_df.to_csv(TRACK_FEAT_FILE, mode="a", header=False, index=False)
+    features_df.to_json(
+        SpotifyFiles.TRACK_FEAT_FILE,
+        mode="a",
+        index=False,
+        lines=True,
+        orient="records",
+    )
+    logger.info("Successfully downloaded audio features")
 
 
 def get_playlists(
     sp: spotipy.client.Spotify,
     user_id: str = None,
-    out_file: str = PLAYLIST_FILE,
+    out_file: str = SpotifyFiles.PLAYLIST_FILE,
     verbose: int = 0,
 ):
     """
@@ -320,13 +324,15 @@ def get_playlists(
     """
     if not user_id:
         user_id = sp.me()["id"]
+    logger.info(f"Download playlists for user {user_id}")
     playlists = []
     offset = 0
-    update_interval = 50
+    update_interval = 10
     error_counts = 0
     while True:
         response = sp.user_playlists(user_id, limit=50, offset=offset)
         if not response:
+            logger.debug("No playlists found. Sleeping for 5 seconds.")
             time.sleep(5)
             continue
         items = response["items"]
@@ -349,31 +355,25 @@ def get_playlists(
                 ]
             offset += len(items)
         if (offset % update_interval == 0) and (offset != 0):
-            if verbose >= 0:
-                logging.info(f"Processed {offset:.0f} playlists")
-            pickle.dump(playlists, open(out_file, "ab+"))
-            playlists = []  # Clear memory
-    pickle.dump(playlists, open(out_file, "ab+"))
+            logger.info(f"Processed {offset:.0f} playlists for user {user_id}")
+            write_jsonl(playlists, out_file)
+            # Clear memory
+            playlists = []
+            time.sleep(1)
+    write_jsonl(playlists, out_file)
+    logger.info(f"Successfully downloaded playlists for user {user_id}")
 
 
-def parse_playlist_genres(verbose: int = 0):
+def parse_playlist_genres():
     """
     Combine all the genres associated to artists in a playlist.
-
-    Parameters
-    ----------
-    verbose : int
-    Returns
-    -------
-
     """
-    playlists = pickle.load(open(PLAYLIST_FILE, "rb"))
-    data = pickle.load(open(MAIN_DATA_FILE, "rb"))
+    playlists = pickle.load(open(SpotifyFiles.PLAYLIST_FILE, "rb"))
+    data = pickle.load(open(SpotifyFiles.MAIN_DATA_FILE, "rb"))
     updated_playlist = {}
     for playlist_info in playlists:
         playlist_name = playlist_info["name"][0]
-        if verbose >= 1:
-            logging.info(f"Parsing genres for {playlist_name}")
+        logger.info(f"Parsing genres for {playlist_name}")
         # Identify tracks that are both in the library and playlist
         # Because non-saved songs can still be part of playlists
         common_tracks = list(set(playlist_info["tracks"]).intersection(set(data.index)))
@@ -383,42 +383,31 @@ def parse_playlist_genres(verbose: int = 0):
             )
             updated_playlist[playlist_name] = playlist_info
         else:
-            logging.warning(f"No liked songs in playlist {playlist_name}")
-    json.dump(updated_playlist, open(PLAYLIST_GENRE_FILE, "w"))
+            logger.warning(f"No liked songs in playlist {playlist_name}")
+    json.dump(updated_playlist, open(SpotifyFiles.PLAYLIST_GENRE_FILE, "w"))
 
 
-def get_album_covers_for_playlists(verbose: int = 0) -> None:
+def get_album_covers_for_playlists() -> None:
     """
-    TODO: add context.
+    Create album covers for all playlists.
 
     Only downloads album covers of new playlists.
     If new songs where added to an existing playlist, these are not taken into account.
     For example if an earlier version of the playlist only had 5 songs, some of them were repeatedly sampled
     for album covers. If it has 10+ now, we should download album covers again.
 
-    Parameters
-    ----------
-    verbose: int
-        Level of verbosity of the progress tracker. Verbose >= will print which playlist the function
-        is currently working on.
-
-    Returns
-    -------
-
     """
-    playlists = read_pickle(PLAYLIST_FILE)
-    data = pickle.load(open(MAIN_DATA_FILE, "rb"))
+    playlists = read_pickle(SpotifyFiles.PLAYLIST_FILE)
+    data = pickle.load(open(SpotifyFiles.MAIN_DATA_FILE, "rb"))
     items = []
     count = 0
     update_interval = 3
-    if os.path.exists(ALBUM_COVER_FILE):
-        if verbose >= 1:
-            logging.info("Reading in existing album cover file")
-        existing_playlist_album_covers = read_pickle(ALBUM_COVER_FILE)
+    if os.path.exists(SpotifyFiles.ALBUM_COVER_FILE):
+        logger.info("Reading in existing album cover file")
+        existing_playlist_album_covers = read_pickle(SpotifyFiles.ALBUM_COVER_FILE)
         existing_ids = [i[1] for i in existing_playlist_album_covers]
         playlists = [i for i in playlists if i["id"] not in existing_ids]
-    if verbose >= 1:
-        logging.info(f"Downloading album covers for {len(playlists)} playlists")
+    logger.info(f"Downloading album covers for {len(playlists)} playlists")
     for playlist_info in playlists:
         count += 1
         playlist_id = playlist_info["id"]
@@ -443,15 +432,14 @@ def get_album_covers_for_playlists(verbose: int = 0) -> None:
             ]
             items += [(playlist_name, playlist_id, playlist_album_cover_images)]
             if count % update_interval == 0:
-                if verbose >= 1:
-                    logging.info(
-                        f"Downloaded selection of album covers for {count} playlists."
-                    )
-                pickle.dump(items, open(ALBUM_COVER_FILE, "ab+"))
+                logger.info(
+                    f"Downloaded selection of album covers for {count} playlists."
+                )
+                pickle.dump(items, open(SpotifyFiles.ALBUM_COVER_FILE, "ab+"))
                 items = []  # Clear memory
         else:
-            logging.warning(f"No liked songs in playlist {playlist_name}")
-    pickle.dump(items, open(ALBUM_COVER_FILE, "ab+"))
+            logger.warning(f"No liked songs in playlist {playlist_name}")
+    pickle.dump(items, open(SpotifyFiles.ALBUM_COVER_FILE, "ab+"))
 
 
 def _get_playlist_tracks(sp: spotipy.client.Spotify, playlist_id: str) -> list:
@@ -489,7 +477,7 @@ def _get_playlist_tracks(sp: spotipy.client.Spotify, playlist_id: str) -> list:
                 ]
             except TypeError:
                 # Track may be None for local files or unavailable tracks
-                logging.debug(
+                logger.debug(
                     f"Skipping track with invalid structure in playlist {playlist_id}"
                 )
         playlist_tracks = playlist_tracks + current_track_extract

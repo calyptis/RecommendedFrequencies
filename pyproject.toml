@@ -11,14 +11,14 @@ requires-python = ">=3.11,<3.12"
 dynamic = ["version"]
 dependencies = [
     "spotipy>=2.19.0rc1,<=2.19.0",
-    "pandas~=1.4",
-    "numpy~=1.23",
+    "pandas~=2.3",
+    "numpy~=2.4",
     "beautifulsoup4~=4.11",
     "plotly~=5.10",
     "matplotlib~=3.5",
     "streamlit~=1.11",
     "dash~=2.6",
-    "scikit-image~=0.19.3",
+    "scikit-image~=0.26.0",
     "scikit-learn~=1.1",
     "scipy~=1.9",
     "joblib~=1.1",
