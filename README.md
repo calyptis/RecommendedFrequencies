@@ -2,6 +2,11 @@
 
 [**Slide deck**](resources/presentation/Presentation.pdf) | [**Blog post**](https://calyptis.github.io/RecommendedFrequencies/)
 
+# Announcement
+As of May 2025, Spotify reserves access to ["audio features to apps with established, scalable, and impactful use cases".](https://developer.spotify.com/blog/2024-11-27-changes-to-the-web-api)
+Unfortunately, this means that this project will not work anymore unless Spotify grants access on an individual basis to projects such as these.
+Unless your developer account has been granted extended access by Spotify, this use case will not work.
+
 # Introduction
 Recommended Frequencies is a playlist recommendation engine designed for Spotify. It analyzes a selected playlist from a user's library and suggests additional tracks from their liked songs that would complement it well.
 
